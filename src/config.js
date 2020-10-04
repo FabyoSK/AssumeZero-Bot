@@ -1,7 +1,7 @@
 const utils = require("./configutils"); // Utility functions
 
 // The trigger word that precedes most commands and will activate the bot
-exports.trigger = "physics";
+exports.trigger = "fsk";
 
 // Bot owner information
 exports.owner = {
@@ -15,8 +15,8 @@ exports.owner = {
 // Bot information
 exports.bot = {
     "names": {
-        "short": "AØBøt", // Will be used as 'nickname' in chat (remove if same as account name)
-        "long": "AssumeZero Bot" // Name displayed in profile on bot's Facebook account
+        "short": "FSK-BOT", // Will be used as 'nickname' in chat (remove if same as account name)
+        "long": "FSK Bot" // Name displayed in profile on bot's Facebook account
     },
     "id": "100041587845629" // Bot's ID (for security purposes in commands)
 }
