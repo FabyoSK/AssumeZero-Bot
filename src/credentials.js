@@ -2,7 +2,7 @@
 exports.FACEBOOK_EMAIL = "9221045";
 exports.FACEBOOK_PASSWORD = "Lenovo.10";
 // Heroku application token
-exports.TOKEN = "";
+exports.TOKEN = "051201dc-0c15-4d66-8aed-9a75cdc1c058";
 // MemCachier credentials (from MemCachier dashboard)
 exports.MEMCACHIER_PASSWORD = "1144611F3DDA76AE66C19AD9352A2115";
 exports.MEMCACHIER_SERVERS = "mc2.c1.eu-central-1.ec2.memcachier.com:11211";
