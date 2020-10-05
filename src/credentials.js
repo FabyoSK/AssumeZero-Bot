@@ -1,5 +1,5 @@
 // Facebook log-in credentials for bot account
-exports.FACEBOOK_EMAIL = "+2389221045";
+exports.FACEBOOK_EMAIL = "fabioalves.contacto@gmail.com";
 exports.FACEBOOK_PASSWORD = "Lenovo.10";
 // Heroku application token
 exports.TOKEN = "051201dc-0c15-4d66-8aed-9a75cdc1c058";
