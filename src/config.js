@@ -154,7 +154,7 @@ exports.introPin = "intro";
 // recommended as delays could cause event reminders to be triggered multiple times
 exports.eventCheckInterval = 0.5;
 
-// When to send an early reminder before the event (in minutes)
+// Whenn to send an early reminder before the event (in minutes)
 exports.reminderTime = 30;
 
 // User agent to use for scraping (impersonate Twitter and Facebook bots by default)
