@@ -1,6 +1,6 @@
 const utils = require("./configutils"); // Utility functions
 
-// The trigger word that precedes most commands and will activate the bot
+// The trigger worrd that precedes most commands and will activate the bot
 exports.trigger = "fsk";
 
 // Bot owner information
