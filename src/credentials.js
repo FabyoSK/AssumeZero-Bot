@@ -11,6 +11,6 @@ exports.MEMCACHIER_USERNAME = "694DC1";
 exports.SPOTIFY_CLIENTID = "";
 exports.SPOTIFY_CLIENTSECRET = "";
 // Wolfram short-answer API key
-exports.WOLFRAM_KEY = "";
+exports.WOLFRAM_KEY = "RLEP3R-YRV7W77YYE";
 // Open Weather Map API key
 exports.WEATHER_KEY = "4b9fdc03c19b80208757f9a9fdc9908a";
