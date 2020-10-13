@@ -212,10 +212,20 @@ const eggs = [
         "regex": /bom dio/i,
         "func": threadId => { utils.sendFile("../media/bomdio.jpeg", threadId); }
     },
+
+{
+        "regex": /fsk Quem é o teu pai?/i,
+        "func": threadId => { utils.sendFile("../media/fabyo.jpeg", threadId); }
+    },
     {
         "regex": /disappoint(?:ed|ment)/i,
         "func": threadId => { utils.sendFile("../media/disappoint.jpg", threadId); }
     },
+{
+        "regex": /fj16/i,
+        "func": threadId => { utils.sendFile("../media/fj16.jpeg", threadId); }
+    },
+
     {
         "regex": /the flash/i,
         "func": threadId => { utils.sendFile("../media/flash.mp3", threadId) }
