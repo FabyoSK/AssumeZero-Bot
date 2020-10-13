@@ -201,9 +201,14 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/adm.jpeg", threadId); }
     },
 {
-        "regex": /kamui/i,
+        "regex": /chupada dimensional/i,
         "func": threadId => { utils.sendFile("../media/kamui.jpeg", threadId); }
     },
+{
+        "regex": /beijão da poha/i,
+        "func": threadId => { utils.sendFile("../media/bejao.jpeg", threadId); }
+    },
+
     {
         "regex": /disappoint(?:ed|ment)/i,
         "func": threadId => { utils.sendFile("../media/disappoint.jpg", threadId); }
