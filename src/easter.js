@@ -208,7 +208,10 @@ const eggs = [
         "regex": /beijão da poha/i,
         "func": threadId => { utils.sendFile("../media/bejao.jpeg", threadId); }
     },
-
+{
+        "regex": /bom dio/i,
+        "func": threadId => { utils.sendFile("../media/bomdio.jpeg", threadId); }
+    },
     {
         "regex": /disappoint(?:ed|ment)/i,
         "func": threadId => { utils.sendFile("../media/disappoint.jpg", threadId); }
