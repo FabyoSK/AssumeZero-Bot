@@ -189,6 +189,10 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/mario.jpg", threadId); }
     },
     {
+        "regex": /ohhhh/i,
+        "func": threadId => { utils.sendFile("../media/ohhh.jpg", threadId); }
+    },
+    {
         "regex": /disappoint(?:ed|ment)/i,
         "func": threadId => { utils.sendFile("../media/disappoint.jpg", threadId); }
     },
@@ -416,6 +420,10 @@ const eggs = [
     {
         "regex": /^sad$/i,
         "func": (threadId, messageId) => { utils.reactToMessage(messageId, "sad"); }
+    },
+    {
+        "regex": /^kkkk$/i,
+        "func": (threadId, messageId) => { utils.reactToMessage(messageId, "haha"); }
     },
     {
         "regex": /devry/i,
