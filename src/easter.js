@@ -223,7 +223,7 @@ const eggs = [
     },
 {
         "regex": /fj16/i,
-        "func": threadId => { utils.sendFile("../media/fj16.jpeg", threadId); }
+        "func": threadId => { utils.sendFile("../media/fj.jpeg", threadId); }
     },
 
     {
