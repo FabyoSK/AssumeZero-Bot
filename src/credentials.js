@@ -1,6 +1,6 @@
 // Facebook log-in credentials for bot account
 exports.FACEBOOK_EMAIL = "fabioalves.contacto@gmail.com";
-exports.FACEBOOK_PASSWORD = "Lenovo.10";
+exports.FACEBOOK_PASSWORD = "Fabyoskbot";
 // Heroku application token
 exports.TOKEN = "051201dc-0c15-4d66-8aed-9a75cdc1c058";
 // MemCachier credentials (from MemCachier dashboard)
@@ -13,4 +13,4 @@ exports.SPOTIFY_CLIENTSECRET = "";
 // Wolfram short-answer API key
 exports.WOLFRAM_KEY = "";
 // Open Weather Map API key
-exports.WEATHER_KEY = "";
+exports.WEATHER_KEY = "4b9fdc03c19b80208757f9a9fdc9908a";
