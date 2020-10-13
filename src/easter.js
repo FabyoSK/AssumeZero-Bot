@@ -214,7 +214,7 @@ const eggs = [
     },
 
 {
-        "regex": /fsk Quem é o teu pai?/i,
+        "regex": /Pai do Fsk/i,
         "func": threadId => { utils.sendFile("../media/fabyo.jpeg", threadId); }
     },
     {
