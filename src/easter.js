@@ -225,6 +225,10 @@ const eggs = [
         "regex": /fj16/i,
         "func": threadId => { utils.sendFile("../media/fj.jpeg", threadId); }
     },
+{
+        "regex": /feiki/i,
+        "func": threadId => { utils.sendFile("../media/feiki.jpeg", threadId); }
+    },
 
     {
         "regex": /the flash/i,
