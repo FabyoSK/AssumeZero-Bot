@@ -61,13 +61,13 @@ exports.order66Time = 15;
 exports.banTime = 30;
 
 // Number of times to message user with the "wake up" command
-exports.wakeUpTimes = 2;
+exports.wakeUpTimes = 1;
 
 // Default color (hex)
 exports.defaultColor = "#67B868";
 
 // Number of random colors to cycle through for the "hit the lights" command
-exports.numColors = 3;
+exports.numColors = 1;
 
 // Default emoji
 exports.defaultEmoji = "🚀";
