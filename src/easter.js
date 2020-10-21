@@ -325,10 +325,10 @@ const eggs = [
     },
     {
         "regex": /😂/i,
-        "func": (_, messageId) => { utils.reactToMessage(messageId, "angry"); }
+        "func": (_, messageId) => { utils.reactToMessage(messageId, "funny"); }
     },
     {
-        "regex": /(?:^|\s)(?:v|a)r($|[^A-z0-9])/i,
+        "regex": /gado/i,
         "func": (_, messageId) => { utils.reactToMessage(messageId, "funny"); }
     },
     {
