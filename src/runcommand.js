@@ -8,6 +8,9 @@ const utils = require("./utils");
 const cutils = require("./configutils");
 const commands = require("./commands");
 const entities = new Entities();
+const nHentaiAPI = require('nhentai-api-js');
+
+let nhentai = new nHentaiAPI();
 let credentials;
 try {
     // Login creds from local dir
@@ -399,6 +402,14 @@ const funcs = {
             }
         });
     },
+    "hentai": (threadId, cmatch) => { // Check before regular searches to prevent collisions
+
+        const query = cmatch[1];
+
+        nhentai.g(263492).then(gallery => {
+
+utils.sendMessage(JSON.stringify(gallery));   
+                },
     "playlist": (threadId, cmatch, groupInfo) => {
         const playlists = groupInfo["playlists"];
         if (cmatch[1]) { // User provided
