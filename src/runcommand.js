@@ -402,15 +402,8 @@ const funcs = {
             }
         });
     },
-    "hentai": (threadId, cmatch) => { // Check before regular searches to prevent collisions
 
-        const query = cmatch[1];
-
-        nhentai.g(263492).then(gallery => {
-
-utils.sendMessage(JSON.stringify(gallery));   
-                },
-    "playlist": (threadId, cmatch, groupInfo) => {
+"playlist": (threadId, cmatch, groupInfo) => {
         const playlists = groupInfo["playlists"];
         if (cmatch[1]) { // User provided
             const user = cmatch[1].toLowerCase();
