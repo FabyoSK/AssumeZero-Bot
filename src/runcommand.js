@@ -8,9 +8,9 @@ const utils = require("./utils");
 const cutils = require("./configutils");
 const commands = require("./commands");
 const entities = new Entities();
-const nHentaiAPI = require('nhentai-api-js');
 
-let nhentai = new nHentaiAPI();
+
+
 let credentials;
 try {
     // Login creds from local dir
