@@ -1,6 +1,6 @@
 // Facebook log-in credentials for bot account
 exports.FACEBOOK_EMAIL = "fskbot7@gmail.com";
-exports.FACEBOOK_PASSWORD = "Fabyoskbot";
+exports.FACEBOOK_PASSWORD = "Fabioskbot";
 // Heroku application token
 exports.TOKEN = "051201dc-0c15-4d66-8aed-9a75cdc1c058";
 // MemCachier credentials (from MemCachier dashboard)
