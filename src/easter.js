@@ -197,8 +197,37 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/omoshiroi.jpeg", threadId); }
     },
     {
+
         "regex": /adm gostoso/i,
+
         "func": threadId => { utils.sendFile("../media/adm.jpeg", threadId); }
+
+    },
+    {
+
+        "regex": /Yamete Kudasai/i,
+
+        "func": threadId => { utils.sendFile("../media/yamete.jpeg", threadId); }
+
+    },
+    {
+
+        "regex": /Hora do Ban/i,
+
+        "func": threadId => { utils.sendFile("../media/ban.jpeg", threadId); }
+
+    },{
+
+        "regex": /Quem é a adm assustadora?/i,
+
+        "func": threadId => { utils.sendFile("../media/admnya.jpeg", threadId); }
+
+    },{
+
+        "regex": /Safado/i,
+
+        "func": threadId => { utils.sendFile("../media/safado.jpeg", threadId); }
+
     },
 {
         "regex": /chupada dimensional/i,
