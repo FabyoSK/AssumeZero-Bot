@@ -295,7 +295,7 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/dropbox.jpg", threadId); }
     },
     {
-        "regex": /(?:yo)?u(?:(?:\'|’)re|r)? ri(?:ght|te)/i,
+        "regex": /😂/i,
         "func": (_, messageId) => { utils.reactToMessage(messageId, "angry"); }
     },
     {
