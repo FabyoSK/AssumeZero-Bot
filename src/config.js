@@ -6,8 +6,8 @@ exports.trigger = "fsk";
 // Bot owner information
 exports.owner = {
     "names": {
-        "short": "Cameron",
-        "long": "Cameron Bernhardt"
+        "short": "Fábio",
+        "long": "Fábio Alves"
     },
     "id": "100007016509302" // ID of bot owner (for secure commands, reports, and alerts)
 };
