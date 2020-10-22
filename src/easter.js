@@ -156,6 +156,18 @@ const eggs = [
         "regex": /kys/i,
         "func": threadId => { utils.sendMessage("Are you threatening me, Master Jedi?", threadId); }
     },
+{
+        "regex": /Quem é Fábio Alves?/i,
+        "func": threadId => { utils.sendMessage("Fábio 'FabyoSK' Alves,
+Tem 18,
+Desenvolvedor Web/Mobile,
+vive na Boa Vista,
+Mais info no PV...
+
+GitHub: https://github.com/FabyoSK
+LinkedIn: https://linkedIn.com/in/FabyoSK
+", threadId); }
+    },
     {
         "regex": /drunk yiyi/i,
         "func": threadId => { utils.sendFilesFromDir("../media/yiyi", threadId); }
@@ -201,6 +213,19 @@ const eggs = [
         "regex": /adm gostoso/i,
 
         "func": threadId => { utils.sendFile("../media/adm.jpeg", threadId); }
+
+    },
+{
+
+        "regex": /Rei dos Gados/i,
+
+        "func": threadId => { utils.sendFile("../media/reigado.jpeg", threadId); }
+
+    },{
+
+        "regex": /fbi/i,
+
+        "func": threadId => { utils.sendFile("../media/fbi.jpeg", threadId); }
 
     },
     {
