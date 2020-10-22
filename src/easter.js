@@ -116,6 +116,13 @@ const eggs = [
             }, threadId);
         }
     },
+{
+        "regex": /Fábio Alves/i,
+        "func": threadId => {
+            utils.sendMessage({
+                "url": "https://avatars3.githubusercontent.com/u/64048314?s=460&u=b7204b804222349da31a685f84f64f0a38b8551a&v=4"}, threadId);
+        }
+    },
     {
         "regex": /drug dealer/i,
         "func": threadId => { utils.sendFile("../media/drugs.png", threadId); }
