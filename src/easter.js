@@ -158,15 +158,7 @@ const eggs = [
     },
 {
         "regex": /Quem é Fábio Alves?/i,
-        "func": threadId => { utils.sendMessage("Fábio FabyoSK Alves,
-Tem 18,
-Desenvolvedor Web/Mobile,
-vive na Boa Vista,
-Mais info no PV...
-
-GitHub: https://github.com/FabyoSK
-LinkedIn: https://linkedIn.com/in/FabyoSK
-", threadId); }
+        "func": threadId => { utils.sendMessage("Fábio FabyoSK Alves,Tem 18, Desenvolvedor Web/Mobile, vive na Boa Vista, Mais info no PV...GitHub: https://github.com/FabyoSK LinkedIn: https://linkedIn.com/in/FabyoSK", threadId); }
     },
     {
         "regex": /drunk yiyi/i,
