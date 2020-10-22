@@ -117,7 +117,7 @@ const eggs = [
         }
     },
 {
-        "regex": /Fábio Alves/i,
+        "regex": /Quem é Fábio Alves?/i,
         "func": threadId => {
             utils.sendMessage({
                 "url": "https://avatars3.githubusercontent.com/u/64048314?s=460&u=b7204b804222349da31a685f84f64f0a38b8551a&v=4"}, threadId);
