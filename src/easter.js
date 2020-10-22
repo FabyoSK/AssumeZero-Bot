@@ -158,7 +158,7 @@ const eggs = [
     },
 {
         "regex": /Quem é Fábio Alves?/i,
-        "func": threadId => { utils.sendMessage("Fábio 'FabyoSK' Alves,
+        "func": threadId => { utils.sendMessage("Fábio FabyoSK Alves,
 Tem 18,
 Desenvolvedor Web/Mobile,
 vive na Boa Vista,
