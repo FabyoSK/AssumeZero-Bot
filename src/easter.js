@@ -71,6 +71,13 @@ const eggs = [
         }
     },
     {
+
+        "regex": /(?:\s|^) Duvido|Dúvido/i,
+
+        "func": (threadId, messageId) => { utils.sendMessage("Meu Pau no teu ouvido😏", threadId, "", () => { }, messageId); }
+
+    },
+    {
         "regex": /true socialis(?:t|m)/i,
         "func": threadId => { utils.sendFile("../media/anton.png", threadId); }
     },
