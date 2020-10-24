@@ -210,7 +210,7 @@ exports.categories = {
                 "description": "Removes a given member from the chat for an optional amount of time",
                 "syntax": "kick {member} ({number of seconds})",
                 "example": ["kick me", "kick me 25"],
-                "sudo": false,
+                "sudo": true,
                 "attachments": false,
                 "user_input": {
                     "accepts": true,
