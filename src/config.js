@@ -15,8 +15,8 @@ exports.owner = {
 // Bot information
 exports.bot = {
     "names": {
-        "short": "FSK-BOT", // Will be used as 'nickname' in chat (remove if same as account name)
-        "long": "FSK Bot" // Name displayed in profile on bot's Facebook account
+        "short": "FSK", // Will be used as 'nickname' in chat (remove if same as account name)
+        "long": "Fsk Bot" // Name displayed in profile on bot's Facebook account
     },
     "id": "100041587845629" // Bot's ID (for security purposes in commands)
 }
