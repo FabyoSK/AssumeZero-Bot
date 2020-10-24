@@ -493,7 +493,7 @@ exports.categories = {
                 "description": `Every single group member, including your Socialpath Yiyi Kuang, is now an enemy of the group chat (for ${config.order66Time} seconds)`,
                 "syntax": "execute order 66",
                 "example": "",
-                "sudo": false,
+                "sudo": true,
                 "attachments": false,
                 "user_input": {
                     "accepts": false,
@@ -589,7 +589,7 @@ exports.categories = {
                 "description": "Fun isn’t something one considers when balancing the group chat. But this...does put a smile on my face...",
                 "syntax": "snap",
                 "example": "",
-                "sudo": false,
+                "sudo": true,
                 "attachments": false,
                 "user_input": {
                     "accepts": false,
