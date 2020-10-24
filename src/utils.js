@@ -222,7 +222,7 @@ exports.welcomeToChat = (name, groupInfo) => {
     if (groupInfo.pinned) {
         const introPin = groupInfo.pinned[config.introPin];
         if (introPin) {
-            msg += `\nHere's some information about this chat:\n\n${this.stringifyPin(introPin)}`;
+            msg += `${this.stringifyPin(introPin)}`;
         }
     }
 
@@ -966,7 +966,7 @@ exports.getComputedStats = stats => {
 exports.reactToMessage = (messageId, reaction = "like", api = gapi) => {
     const reactions = {
         "love": "😍",
-        "funny": "😆",
+        "funny": "😂",
         "wow": "😮",
         "sad": "😢",
         "angry": "😠",
