@@ -72,9 +72,9 @@ const eggs = [
     },
     {
 
-        "regex": /(?:\s|^) Duvido|Dúvido/i,
+        "regex": /Duvido|Dúvido/i,
 
-        "func": (threadId, messageId) => { utils.sendMessage("Meu Pau no teu ouvido😏", threadId, "", () => { }, messageId); }
+        "func": (threadId, messageId) => { utils.sendMessage("Meu Pau no teu ouvido😏"), threadId, "", () => { }, messageId); }
 
     },
     {
