@@ -222,7 +222,7 @@ exports.welcomeToChat = (name, groupInfo) => {
     if (groupInfo.pinned) {
         const introPin = groupInfo.pinned[config.introPin];
         if (introPin) {
-            msg += `${this.stringifyPin(introPin)}`;
+            msg += `\n${this.stringifyPin(introPin)}`;
         }
     }
 
