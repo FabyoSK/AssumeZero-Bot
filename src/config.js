@@ -9,7 +9,7 @@ exports.owner = {
         "short": "Fábio",
         "long": "Fábio Alves"
     },
-    "id": "100011256695337" // ID of bot owner (for secure commands, reports, and alerts)
+    "id": ["100011256695337", "100008023023429"] // ID of bot owner (for secure commands, reports, and alerts)
 };
 
 // Bot information
