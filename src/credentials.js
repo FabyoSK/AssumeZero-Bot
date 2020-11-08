@@ -2,7 +2,7 @@
 exports.FACEBOOK_EMAIL = "fskbot7@gmail.com";
 exports.FACEBOOK_PASSWORD = "Fabioskbot";
 // Heroku application token
-exports.TOKEN = "1ac33c78-2af1-4bfa-8e3b-c4fb37b9f6b6";
+exports.TOKEN = "051201dc-0c15-4d66-8aed-9a75cdc1c058";
 // MemCachier credentials (from MemCachier dashboard)
 exports.MEMCACHIER_PASSWORD = "1144611F3DDA76AE66C19AD9352A2115";
 exports.MEMCACHIER_SERVERS = "mc2.c1.eu-central-1.ec2.memcachier.com:11211";
