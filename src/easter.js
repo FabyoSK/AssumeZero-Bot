@@ -84,6 +84,12 @@ const eggs = [
     {
         "regex": /pre(?:-|\s)?med/i,
         "func": threadId => { utils.sendFile("../media/premed.png", threadId); }
+    }, {
+
+        "regex": /gado/i,
+
+        "func": threadId => { utils.sendMessage("Muuuuuuuuu🐂", threadId); }
+
     },
     {
         "regex": /(?:good)?(?:\s)?ni(?:ght|te)(?:\,)? bot/i,
