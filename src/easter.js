@@ -256,7 +256,7 @@ const eggs = [
 
     },{
 
-        "regex": /Quem é a adm assustadora?/i,
+        "regex": /imouto do Fábio/i,
 
         "func": threadId => { utils.sendFile("../media/admnya.jpeg", threadId); }
 
