@@ -170,13 +170,7 @@ const eggs = [
         "regex": /kys/i,
         "func": threadId => { utils.sendMessage("Are you threatening me, Master Jedi?", threadId); }
     },
-     {
 
-        "regex": /gado/i,
-
-        "func": threadId => { utils.sendMessage("Muuuuuuu 🐂", threadId); }
-
-    },
 {
         "regex": /Quem é Fábio Alves?/i,
         "func": threadId => { utils.sendContentsOfFile("../media/fabyo.txt", threadId); }
