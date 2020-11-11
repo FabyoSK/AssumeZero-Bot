@@ -36,7 +36,7 @@ exports.defaultTitle = "Unnamed chat"
 
 // Heroku settings (might need to tweak some things if using another host)
 // App name
-exports.appName = "fsk-bot";
+exports.appName = "fskbot";
 
 
 // Server URL
