@@ -523,11 +523,11 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/shup.png", threadId); }
     },
     {
-        "regex": /^sad$/i,
+        "regex": /^F$/i,
         "func": (threadId, messageId) => { utils.reactToMessage(messageId, "sad"); }
     },
     {
-        "regex": /^kkkk$/i,
+        "regex": /kkkkk/i,
         "func": (threadId, messageId) => { utils.reactToMessage(messageId, "haha"); }
     },
     {
