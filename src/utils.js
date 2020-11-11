@@ -965,7 +965,7 @@ exports.getComputedStats = stats => {
 // Possible reactions: 'love', 'funny', 'wow', 'sad', 'angry', 'like', and 'dislike'
 exports.reactToMessage = (messageId, reaction = "like", api = gapi) => {
     const reactions = {
-        "love": "😍",
+        "love": "❤️",
         "funny": "😂",
         "wow": "😮",
         "sad": "😢",
