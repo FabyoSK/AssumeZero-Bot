@@ -90,7 +90,7 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/premed.png", threadId); }
     }, {
 
-        "regex": /gado/i,
+        "regex": /^gado$/i,
 
         "func": threadId => { utils.sendMessage("Muuuuuuuuu🐂", threadId); }
 
