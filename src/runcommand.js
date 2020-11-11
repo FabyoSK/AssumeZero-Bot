@@ -8,9 +8,6 @@ const utils = require("./utils");
 const cutils = require("./configutils");
 const commands = require("./commands");
 const entities = new Entities();
-
-
-
 let credentials;
 try {
     // Login creds from local dir
@@ -29,7 +26,6 @@ const spotify = new (require("spotify-web-api-node"))({
 // Command order indicates (and determines) precedence
 const funcs = {
     "help": (threadId, cmatch) => { // Check help first to avoid command conflicts
-        const co = commands.commands;
         const cats = commands.categories;
         let input;
         if (cmatch[1]) {
@@ -91,7 +87,7 @@ const funcs = {
                 if (cats.hasOwnProperty(c)) {
                     const cat = cats[c];
                     if (cat.display_name) { // Don't display hidden categories
-                        mess += `*${cat.display_name}*: ${cat.description}\n`
+                        mess += `*${cat.display_name}*: ${cat.description}\n`;
                     }
                 }
             }
@@ -100,7 +96,7 @@ const funcs = {
     },
     "stats": (threadId, cmatch, groupInfo) => {
         const command = cmatch[1];
-        utils.getStats(command, true, (err, stats) => {
+        utils.getStats(command, true, () => {
             let input;
             if (cmatch[1]) {
                 input = cmatch[1].trim().toLowerCase();
@@ -186,10 +182,10 @@ const funcs = {
                 // Kick with optional time specified in call only if specified in command
                 utils.kick(groupInfo.members[user], senderId, groupInfo, optTime);
             } else {
-                utils.sendError(`Couldn't find user "${cmatch[1]}".`, threadId);
+                utils.sendError(`Couldn't find user "${cmatch[1]}".`, groupInfo.threadId);
             }
         } catch (e) {
-            utils.sendError(e, threadId);
+            utils.sendError(e, groupInfo.threadId);
         }
     },
     "xkcd": (threadId, cmatch) => { // Check before regular searches to prevent collisions
@@ -402,8 +398,7 @@ const funcs = {
             }
         });
     },
-
-"playlist": (threadId, cmatch, groupInfo) => {
+    "playlist": (threadId, cmatch, groupInfo) => {
         const playlists = groupInfo["playlists"];
         if (cmatch[1]) { // User provided
             const user = cmatch[1].toLowerCase();
@@ -482,8 +477,10 @@ const funcs = {
                 utils.loginSpotify(spotify, err => {
                     if (!err) {
                         let results = [];
-                        let now = current = (new Date()).getTime();
+                        const now = (new Date()).getTime();
+                        let current = now;
 
+                        // eslint-disable-next-line no-inner-declarations
                         function updateResults(value) {
                             results.push(value);
 
@@ -555,7 +552,7 @@ const funcs = {
                     pin = reply.body;
                     sender = reply.senderID == config.bot.id ? config.bot.names.short :
                         (groupInfo.names[reply.senderID] || "Unknown");
-                    time = reply.timestamp
+                    time = reply.timestamp;
                 }
                 const date = new Date(parseInt(time));
 
@@ -569,7 +566,7 @@ const funcs = {
                     const content = reply ? pin : match[2];
 
                     if (existing && content) {
-                        utils.appendPin(content, existing, date, sender, groupInfo)
+                        utils.appendPin(content, existing, date, sender, groupInfo);
                     } else {
                         utils.sendError("Please provide a pin and content to append to it.", threadId);
                     }
@@ -689,7 +686,7 @@ const funcs = {
                     }
                 });
             }
-        } else { // No color requested – show current color
+        } else { // No color requested – show current color
             utils.sendMessage(`The current chat color is ${ogColor} (hex value: ${groupInfo.color ? groupInfo.color : "empty"}).`, threadId);
         }
     },
@@ -766,7 +763,7 @@ const funcs = {
         const command = cmatch[1].toLowerCase();
         let message = `${cmatch[2]}`;
         if (command == "echo") {
-            // Just an echo – repeat message
+            // Just an echo – repeat message
             utils.sendMessage(message, threadId);
         } else {
             // Quote - use name
@@ -815,7 +812,7 @@ const funcs = {
         const user = cmatch[2].toLowerCase();
         const userId = groupInfo.members[user];
         const user_cap = user.substring(0, 1).toUpperCase() + user.substring(1);
-        const getCallback = isAdd => {
+        const getCallback = () => {
             return (err, success, newScore) => {
                 if (success) {
                     utils.sendMessage(`${user_cap}'s current score is now ${newScore}.`, threadId);
@@ -985,11 +982,11 @@ const funcs = {
     },
     "bw": (threadId, cmatch, groupInfo, _, __, attachments) => {
         const url = cmatch[1];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
-            img.greyscale().write(filename, err => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
+            img.greyscale().write(path, err => {
                 if (!err) {
                     utils.sendFile(filename, threadId, "", () => {
-                        fs.unlink(filename);
+                        fs.unlink(path, () => { });
                     });
                 }
             });
@@ -997,11 +994,11 @@ const funcs = {
     },
     "sepia": (threadId, cmatch, groupInfo, _, __, attachments) => {
         const url = cmatch[1];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
-            img.sepia().write(filename, err => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
+            img.sepia().write(path, err => {
                 if (!err) {
                     utils.sendFile(filename, threadId, "", () => {
-                        fs.unlink(filename);
+                        fs.unlink(path, () => { });
                     });
                 }
             });
@@ -1010,11 +1007,11 @@ const funcs = {
     "flip": (threadId, cmatch, groupInfo, _, __, attachments) => {
         const horiz = (cmatch[1].toLowerCase().indexOf("horiz") > -1); // Horizontal or vertical
         const url = cmatch[2];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
-            img.flip(horiz, !horiz).write(filename, err => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
+            img.flip(horiz, !horiz).write(path, err => {
                 if (!err) {
                     utils.sendFile(filename, threadId, "", () => {
-                        fs.unlink(filename);
+                        fs.unlink(path, () => { });
                     });
                 }
             });
@@ -1022,11 +1019,11 @@ const funcs = {
     },
     "invert": (threadId, cmatch, groupInfo, _, __, attachments) => {
         const url = cmatch[1];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
-            img.invert().write(filename, err => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
+            img.invert().write(path, err => {
                 if (!err) {
                     utils.sendFile(filename, threadId, "", () => {
-                        fs.unlink(filename);
+                        fs.unlink(path, () => { });
                     });
                 }
             });
@@ -1036,24 +1033,24 @@ const funcs = {
         const pixels = parseInt(cmatch[1]) || 2;
         const gauss = cmatch[2];
         const url = cmatch[3];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
             if (gauss) {
                 // Gaussian blur (extremely resource-intensive – will pretty much halt the bot while processing)
                 utils.sendMessage("Hang on, this might take me a bit...", threadId, () => {
                     const now = (new Date()).getTime();
-                    img.gaussian(pixels).write(filename, err => {
+                    img.gaussian(pixels).write(path, err => {
                         if (!err) {
                             utils.sendFile(filename, threadId, `Processing took ${((new Date()).getTime() - now) / 1000} seconds.`, () => {
-                                fs.unlink(filename);
+                                fs.unlink(path, () => { });
                             });
                         }
                     });
                 });
             } else {
-                img.blur(pixels).write(filename, err => {
+                img.blur(pixels).write(path, err => {
                     if (!err) {
                         utils.sendFile(filename, threadId, "", () => {
-                            fs.unlink(filename);
+                            fs.unlink(path, () => { });
                         });
                     }
                 });
@@ -1063,19 +1060,18 @@ const funcs = {
     "overlay": (threadId, cmatch, groupInfo, _, __, attachments) => {
         const url = cmatch[1];
         const overlay = cmatch[2];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
             jimp.loadFont(jimp.FONT_SANS_32_BLACK, (err, font) => {
                 if (!err) {
                     const width = img.bitmap.width; // Image width
                     const height = img.bitmap.height; // Image height
                     const textDims = utils.measureText(font, overlay); // Get text dimensions (x,y)
-                    img.print(font, (width - textDims[0]) / 2, (height - textDims[1]) / 2, overlay, (width + textDims[0])).write(filename, err => {
+                    img.print(font, (width - textDims[0]) / 2, (height - textDims[1]) / 2, overlay, (width + textDims[0])).write(path, err => {
                         if (!err) {
-                            const qualifiedFilename = `${__dirname}/${filename}`;
-                            img.write(qualifiedFilename, err => {
+                            img.write(path, err => {
                                 if (!err) {
                                     utils.sendFile(filename, threadId, "", () => {
-                                        fs.unlink(qualifiedFilename, () => { });
+                                        fs.unlink(path, () => { });
                                     });
                                 } else {
                                     utils.sendError("Encountered a problem trying to save the image.", threadId);
@@ -1096,11 +1092,11 @@ const funcs = {
         perc = (perc > 100) ? 1 : (perc / 100.0);
         perc = bright ? perc : (-1 * perc);
         const url = cmatch[3];
-        utils.processImage(url, attachments, groupInfo, (img, filename) => {
-            img.brightness(perc).write(filename, err => {
+        utils.processImage(url, attachments, groupInfo, (img, filename, path) => {
+            img.brightness(perc).write(path, err => {
                 if (!err) {
                     utils.sendFile(filename, threadId, "", () => {
-                        fs.unlink(filename);
+                        fs.unlink(path, () => { });
                     });
                 }
             });
@@ -1112,8 +1108,8 @@ const funcs = {
                 if (!err) {
                     utils.sendMessage(`Bot ${muted ? "muted" : "unmuted"}`, threadId);
                 }
-            }
-        }
+            };
+        };
         const mute = !(cmatch[1]); // True if muting; false if unmuting
         utils.setGroupProperty("muted", mute, groupInfo, getCallback(mute));
     },
@@ -1181,7 +1177,7 @@ const funcs = {
                         }
                     }
                     if (!chatFound) {
-                        utils.sendError(`Chat with name "${searchName}" not found.`, threadId)
+                        utils.sendError(`Chat with name "${searchName}" not found.`, threadId);
                     }
                 }
             } else {
@@ -1191,7 +1187,7 @@ const funcs = {
     },
     "alias": (threadId, cmatch, groupInfo) => {
         const user = cmatch[2].toLowerCase();
-        const aliasInput = cmatch[3]
+        const aliasInput = cmatch[3];
         const aliases = groupInfo.aliases;
         const name = groupInfo.names[groupInfo.members[user]];
         if (cmatch[1]) { // Clear
@@ -1219,7 +1215,7 @@ const funcs = {
     },
     "weather": (threadId, cmatch) => {
         const city = cmatch[1];
-        request(`http://api.openweathermap.org/data/2.5/weather?appid=${credentials.WEATHER_KEY}&q=${city}&units=metrics`, (err, res, body) => {
+        request(`http://api.openweathermap.org/data/2.5/weather?appid=${credentials.WEATHER_KEY}&q=${city}&units=imperial`, (err, res, body) => {
             if (!err && res.statusCode == 200) {
                 const data = JSON.parse(body);
                 const name = data.name;
@@ -1281,7 +1277,7 @@ const funcs = {
                         "tab": info.tab,
                         "pinned": info.pinned,
                         "image": info.image
-                    }
+                    };
 
                     // Check for restorable properties and restore them
                     if (restorables.title && curInfo.isGroup) { api.setTitle(restorables.title, threadId); }
@@ -1440,7 +1436,7 @@ const funcs = {
                 if (err) {
                     utils.sendError(`The bot must be an admin to promote other users. ${utils.getPromoteString(senderId, groupInfo)}`, threadId);
                 }
-            })
+            });
         } else {
             utils.sendError("Can't change admin status: not a group.", threadId);
         }
@@ -1595,11 +1591,11 @@ const funcs = {
     passing in the requisite information from main.
 */
 exports.run = (api, matchInfo, groupInfo, fromUserId, attachments, messageObj) => {
-    for (c in matchInfo) {
+    for (let c in matchInfo) {
         if (matchInfo.hasOwnProperty(c) && matchInfo[c].m) {
             // Match found
             funcs[c](groupInfo.threadId, matchInfo[c].m, groupInfo, api,
                 fromUserId, attachments, messageObj);
         }
     }
-}
+};
