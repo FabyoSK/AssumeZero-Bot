@@ -40,7 +40,7 @@ exports.appName = "fskbot";
 
 
 // Server URL
-exports.serverURL = "https://fsk-bot.herokuapp.com";
+exports.serverURL = "http://fsk-bot.herokuapp.com";
 
 // Whether the bot should sleep at night to preserve dyno hours
 // If not, it will ping the server every 20 min to keep it awake
