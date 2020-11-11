@@ -370,7 +370,7 @@ const eggs = [
         "func": (_, messageId) => { utils.reactToMessage(messageId, "funny"); }
     },
     {
-        "regex": /gado/i,
+        "regex": /^gado$/i,
         "func": (_, messageId) => { utils.reactToMessage(messageId, "funny"); }
     },
     {
