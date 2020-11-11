@@ -49,6 +49,10 @@ const eggs = [
         "regex": /(?:^|\s)nyu(?:\s|$)/i,
         "func": (_, messageId) => { utils.reactToMessage(messageId, "sad"); }
     },
+{
+        "regex": /(?:\s|^)fábio|nya|fabio|fabyosk|fsk/i,
+        "func": (_, messageId) => { utils.reactToMessage(messageId, "love"); }
+    },
     {
         "regex": /physics c(?:[^A-z]|$)/i,
         "func": threadId => {
