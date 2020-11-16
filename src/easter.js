@@ -65,6 +65,10 @@ const eggs = [
         "regex": /(?:\s|^)mechanics|electricity|magnetism|pulley|massless|friction|acceleration|torque|impulse/i,
         "func": (threadId, messageId) => { utils.sendFile("../media/shaw.png", threadId, "", () => { }, messageId); }
     },
+{
+        "regex": /vácuo|vacuo/i,
+        "func": (threadId, messageId) => { utils.sendFile("../media/vacuo.jpeg", threadId, "", () => { }, messageId); }
+    },
     {
         "alt": (message, fromUserId, groupInfo) => {
             return utils.matchesWithUser(/(?:get|measure|check) bac(?:[^k]|$)/, message.body, fromUserId, groupInfo, true, "");
