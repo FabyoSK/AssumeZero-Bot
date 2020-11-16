@@ -50,7 +50,7 @@ const eggs = [
         "func": (_, messageId) => { utils.reactToMessage(messageId, "sad"); }
     },
 {
-        "regex": /(?:\s|^)fábio|nya|fabio|fabyosk|alves|code|coffee/i,
+        "regex": /(?:\s|^)fábio|nya|fabio|fabyosk|alves|code|coffee|one piece|op/i,
         "func": (_, messageId) => { utils.reactToMessage(messageId, "love"); }
     },
     {
