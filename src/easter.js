@@ -285,7 +285,7 @@ const eggs = [
     },
 {
         "regex": /bom dio/i,
-        "func": threadId => { utils.sendFile("../media/bomdio.jpeg", threadId); }
+        "func":  (threadId, messageId) => { utils.sendFile("../media/bomdio.jpeg", threadId, "", () => { }, messageId); }
     },
 
 {
