@@ -126,6 +126,10 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/money.png", threadId); }
     },
     {
+        "regex": /lindo/i,
+        "func": threadId => { utils.sendFile("../media/lindo.jpeg", threadId); }
+    },
+    {
         "regex": /rest of the country/i,
         "func": threadId => {
             utils.sendMessage({
