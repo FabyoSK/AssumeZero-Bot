@@ -274,7 +274,7 @@ const eggs = [
 
     },{
 
-        "regex": /Safado/i,
+        "regex": /freddycomfiltrosafado.png/i,
 
         "func": threadId => { utils.sendFile("../media/safado.jpeg", threadId); }
 
