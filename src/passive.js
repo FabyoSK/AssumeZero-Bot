@@ -1,28 +1,26 @@
 /*
     Listen for certain messages that can be acted upon without an explicit
-    trigger word – usually links that can be expanded to more rich content.
+    trigger word – usually links that can be expanded to more rich content.
 */
 const request = require("request"); // For HTTP requests
 const xpath = require("xpath"); // For HTML parsing
 const domParser = require("xmldom").DOMParser; // For HTML parsing
-const Entities = require("html-entities").XmlEntities; // For decoding HTML entities
-const entities = new Entities();
 const utils = require("./utils"); // For util funcs
 const config = require("./config"); // For configuration
 
 const dom = new domParser({
     locator: {},
     errorHandler: {
-        warning: w => { },
-        error: e => { },
-        fatalError: e => { console.error(e) }
+        warning: () => { },
+        error: () => { },
+        fatalError: e => { console.error(e); }
     }
 });
 
 // Passive type URL regexes and their corresponding handlers
 const passiveTypes = [
     {
-        "regex": /https?:\/\/(mobile\.)?twitter\.com\/.+\/status\/.+/,
+        "regex": /https?:\/\/(?:mobile\.)?twitter\.com\/.+\/status\/(\d+)/,
         "handler": handleTweet
     },
     {
@@ -40,20 +38,40 @@ const passiveTypes = [
 ];
 
 exports.handlePassive = (messageObj, groupInfo, api) => {
-    const message = messageObj.body;
-
-    getPassiveTypes(message, type => {
-        // Call generic handler and pass in all message info (handler can
-        // decide whether they want to use it selectively via parameters)
-        const match = message.match(type.regex);
-        type.handler(match, groupInfo, messageObj, type.regex, api);
-    });
+    if (groupInfo.richContent) { // Don't check for passives if rich content is disabled
+        getPassiveTypes(messageObj, (type, match) => {
+            // Call generic handler and pass in all message info (handler can
+            // decide whether they want to use it selectively via parameters)
+            type.handler(match, groupInfo, messageObj, type.regex, api);
+        });
+    }
 };
 
-function getPassiveTypes(text, cb) {
+function getPassiveTypes(msg, cb) {
+    const { body, attachments } = msg;
     passiveTypes.forEach(type => {
-        if (text.match(type.regex)) {
-            cb(type);
+        const match = body.match(type.regex);
+        if (match) {
+            cb(type, match);
+        } else {
+            // If there isn't a match in the body, we can also check the attachments
+            attachments
+                .filter(attachment => attachment.type === "share" && attachment.url)
+                .map(attachment => {
+                    // Sometimes, Facebook futzes with the URL for redirects,
+                    // so we need to decode it before checking for a match
+                    const encodedURLMatch = attachment.url.match(/l\.facebook\.com\/l\.php\?u=([^&]+)/i);
+                    if (encodedURLMatch) {
+                        return { ...attachment, "url": decodeURIComponent(encodedURLMatch[1]) };
+                    }
+                    return attachment;
+                })
+                .forEach(attachment => {
+                    const attachmentMatch = attachment.url.match(type.regex);
+                    if (attachmentMatch) {
+                        cb(type, attachmentMatch);
+                    }
+                });
         }
     });
 }
@@ -65,50 +83,9 @@ function getPassiveTypes(text, cb) {
     match, groupInfo, messageObj, api
 */
 
-const authorXPath =
-    "//div[contains(@class, 'permalink-tweet-container')]//strong[contains(@class, 'fullname')]/text()";
-const handleXPath =
-    "//div[contains(@class, 'permalink-tweet-container')]//span[contains(@class, 'username')]//b/text()";
-const tweetXPath =
-    "//meta[contains(@property, 'og:description')]/@content";
-const imgXPath =
-    "//div[contains(@class, 'permalink-tweet-container')]//div[contains(@class, 'photo')]//img/@src";
-
 function handleTweet(match, groupInfo) {
-    let url = match[0];
-
-    if (match[1]) {
-        // If mobile link, convert to regular link
-        url = url.replace("mobile.twitter.", "twitter.");
-    }
-
-    // Scrape tweets because the Twitter API is annoying
-    // and requires a 5-page application with essays
-    request.get(url, { "headers": { "User-Agent": config.scrapeAgent } }, (err, res, body) => {
-        if (!err && res.statusCode == 200) {
-            const doc = dom.parseFromString(body);
-
-            const author = xpath.select(authorXPath, doc)[0].nodeValue;
-            const handle = xpath.select(handleXPath, doc)[0].nodeValue;
-            const tweet = xpath.select(tweetXPath, doc)[0].nodeValue;
-
-            // Remove unicode quotes from beginning + end of tweet; decode any HTML entities
-            const prettyText = entities.decode(tweet.substring(1, tweet.length - 1));
-
-            // If there are newlines, put a new quote marker at the beginning
-            const text = prettyText.split("\n").join("\n> ");
-
-            const msg = `${author} (@${handle}) tweeted: \n> ${text}`;
-            // See if an image can be found
-            const imgResults = xpath.select(imgXPath, doc);
-            if (imgResults.length > 0) {
-                const imgs = imgResults.map(img => img.nodeValue);
-                utils.sendFilesFromUrl(imgs, groupInfo.threadId, msg);
-            } else {
-                utils.sendMessage(msg, groupInfo.threadId);
-            }
-        }
-    });
+    const tweetId = match[1];
+    utils.sendTweetMsg(tweetId, groupInfo.threadId);
 }
 
 const titleXPath = "//*[@id='firstHeading']";
@@ -122,7 +99,7 @@ function handleWiki(match, groupInfo) {
         url = url.replace(".m.wikipedia", ".wikipedia");
     }
 
-    request.get(url, {}, (err, res, body) => {
+    request.get(url, { "headers": { "User-Agent": config.scrapeAgent } }, (err, res, body) => {
         if (!err && res.statusCode == 200) {
             const doc = dom.parseFromString(body);
 
@@ -144,9 +121,13 @@ function mentionify(members, groupInfo) {
             "id": id
         };
     });
-    const msg = mentions.map(mention => mention.tag).join(" ");
 
-    return { "body": msg, "mentions": mentions };
+    const msg = mentions.map(mention => mention.tag).join(" ");
+    // Facebook bug disallows searching from position 0 for mentions, so we
+    // have to insert a zero-width space at the beginning before our tags
+    const body = `\u200B${msg}`;
+
+    return { "body": body, "mentions": mentions };
 }
 
 function handleMention(_, groupInfo, messageObj, regex) {

@@ -1502,15 +1502,16 @@ const funcs = {
                 utils.sendError(err, threadId);
             } else {
                 const symbol = data["01. symbol"];
-                const price = parseFloat(data["05. price"]);
-                const prev = parseFloat(data["08. previous close"]);
+                const price = parseFloat(data["05. price"]).toLocaleString();
+                const prev = parseFloat(data["08. previous close"]).toLocaleString();
                 const changeNum = parseFloat(data["09. change"]);
                 const change = changeNum > 0 ? `+${changeNum}` : changeNum;
                 const changePercNum = parseFloat(data["10. change percent"]);
                 const changePerc = changePercNum > 0 ? `+${changePercNum}` : changePercNum;
+                const marketCap = data.marketCap.toLocaleString();
                 const updated = data["07. latest trading day"];
-                const title = data.name ? `${data.name} (${symbol})\n${data.exchange} ${data.type}` : symbol;
-                const msg = `${title}\n\nCurrent price: ${price}\nPrevious close: ${prev}\nChange: ${change} (${changePerc}%)\n\nLast updated: ${updated}`;
+                const title = data.name ? `${data.name} (${symbol})\n${data.exchange} ${data.type}\nMarket cap: $${marketCap}` : symbol;
+                const msg = `${title}\n\nCurrent price: $${price}\nPrevious close: $${prev}\nChange: ${change} (${changePerc}%)\n\nLast updated: ${updated}`;
 
                 utils.sendMessage(msg, threadId);
             }
@@ -1579,6 +1580,90 @@ const funcs = {
                     `Timer stopped. Elapsed time: ${utils.fancyDuration(from, to)}`);
             }
         }
+    },
+    "follow": (threadId, cmatch, groupInfo) => {
+        const handle = cmatch[2];
+        if (cmatch[1]) {
+            // Unfollow
+            const key = handle.toLowerCase();
+            if (groupInfo.following[key]) {
+                delete groupInfo.following[key];
+                utils.setGroupPropertyAndHandleErrors("following", groupInfo,
+                    "Huh, couldn't unfollow that user for some reason. Please try again.",
+                    `Success! You've unfollowed @${handle}.`
+                );
+            } else {
+                utils.sendError(`You're not currently following @${handle}. Use "${config.trigger} follow list" for a list of the users you're following.`, threadId);
+            }
+        } else {
+            // Follow
+            if (handle === "list") {
+                const users = Object.keys(groupInfo.following).map(username => `\n@${username}`).join('');
+                if (users.length > 0) {
+                    return utils.sendMessage(`List of users you're currently following in this chat:\n${users}`, threadId);
+                }
+                return utils.sendMessage("You're not currently following any users in this chat.", threadId);
+            }
+
+            utils.getLatestTweetID(handle, (err, id, userInfo) => {
+                if (err) {
+                    utils.sendError(err.message, threadId);
+                } else {
+                    const { name, username } = userInfo;
+
+                    groupInfo.following[username.toLowerCase()] = id;
+                    utils.setGroupPropertyAndHandleErrors("following", groupInfo,
+                        "Huh, couldn't follow that user for some reason. Please try again.",
+                        `Success! You're now following tweets from ${name} (@${username}).\n\nTo stop receiving this user's tweets in this chat, use "${config.trigger} unfollow @${username}".`
+                    );
+                }
+            });
+        }
+    },
+    "subscribe": (threadId, cmatch, groupInfo) => {
+        const url = cmatch[2];
+        if (cmatch[1]) {
+            // Unsubscribe
+            if (groupInfo.feeds[url]) {
+                delete groupInfo.feeds[url];
+                utils.setGroupPropertyAndHandleErrors("feeds", groupInfo,
+                    "Huh, couldn't unsubscribe from that feed for some reason. Please try again.",
+                    "Success! You've unsubscribed from that feed."
+                );
+            } else {
+                utils.sendError(`You're not currently subscribed to that feed. Use "${config.trigger} subscribe list" for a list of this chat's feed subscriptions.`, threadId);
+            }
+        } else {
+            // Subscribe
+            if (url === "list") {
+                const feeds = Object.keys(groupInfo.feeds).map(feed => `\n${feed}`).join('');
+                if (feeds.length > 0) {
+                    return utils.sendMessage(`List of feeds you're currently subscribed to in this chat:\n${feeds}`, threadId);
+                }
+                return utils.sendMessage("You're not currently following any feeds in this chat.", threadId);
+            }
+
+            utils.getLatestFeedItems(url, groupInfo, (err, _, feed) => {
+                if (err) {
+                    utils.sendError("Unable to look up that feed. Ensure it's a valid direct URL to an RSS feed.", threadId);
+                } else {
+                    groupInfo.feeds[url] = new Date().toISOString();
+                    utils.setGroupPropertyAndHandleErrors("feeds", groupInfo,
+                        "Huh, couldn't subscribe to that feed for some reason. Please try again.",
+                        `Success! You are now subscribed to the feed "${feed.title}".\n\nTo stop receiving updates from this feed in this chat, use "${config.trigger} unsubscribe ${url}".`
+                    );
+                }
+            });
+        }
+    },
+    "richcontent": (_, cmatch, groupInfo) => {
+        const isEnabled = cmatch[1].toLowerCase();
+
+        groupInfo.richContent = (isEnabled === "on");
+        utils.setGroupPropertyAndHandleErrors("richContent", groupInfo,
+            "Wasn't able to update rich content settings; please try again.",
+            `Success! Rich content is now ${isEnabled}.`
+        );
     }
 };
 

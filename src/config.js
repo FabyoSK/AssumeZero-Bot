@@ -150,10 +150,10 @@ exports.dbFailSilently = true;
 // To disable, remove this line
 exports.introPin = "intro";
 
-// How often to check whether an event has happened (in minutes)
-// Smaller intervals are more accurate, but intervals smaller than one minute are not
-// recommended as delays could cause event reminders to be triggered multiple times
-exports.eventCheckInterval = 0.5;
+// How often to run the bot's recurring "ticker" process (in minutes)
+// Smaller intervals are more accurate, but fire more often which may
+// not be desired and can lead to concurrency issues
+exports.tickerInterval = 0.5;
 
 // Whenn to send an early reminder before the event (in minutes)
 exports.reminderTime = 30;
@@ -163,3 +163,9 @@ exports.scrapeAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebK
 
 // Regex to match when mentioning the whole group (see the `mention` passive message type)
 exports.channelMentionRegex = /@@(all|everyone|channel)/i;
+
+// Config to specify where to post new GitHub issues created by the bot
+exports.ghRepo = {
+    owner: 'AstroCB',
+    repo: 'AssumeZero-Bot'
+};

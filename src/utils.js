@@ -4,13 +4,41 @@ const jimp = require("jimp"); // For image processing
 const chrono = require("chrono-node"); // For NL date parsing
 const entities = new (require('html-entities').XmlEntities)(); // For parsing HTML strings
 const humanize = require("humanize-duration"); // For creating readable time durations
+const rss = new (require("rss-parser"))(); // For parsing RSS feeds
+const { Octokit } = require("@octokit/rest"); // For interacting with GitHub
+const { createAppAuth } = require("@octokit/auth-app"); // For authorizing Octokit
+
 const config = require("./config");
 const utils = require("./configutils");
 const commands = require("./commands");
+
 let gapi;
 let mem;
 let credentials;
 let lockedThreads = [];
+let octokitInit;
+
+// We have to lazily initialize octokit because it requires credentials, which won't
+// be initialized until after this file is loaded into memory. Instead of creating
+// a function that initializes and returns an instance every time, we can initialize
+// it once and cache its value for subsequent calls.
+const getOctokit = () => {
+    return octokitInit ? octokitInit
+        : (() => {
+            octokitInit = new Octokit({
+                authStrategy: createAppAuth,
+                auth: {
+                    appId: credentials.GITHUB_APP_ID,
+                    privateKey: credentials.GITHUB_PRIVATE_KEY,
+                    installationId: credentials.GITHUB_INSTALLATION_ID,
+                    clientId: credentials.GITHUB_CLIENT_ID,
+                    clientSecret: credentials.GITHUB_CLIENT_SECRET
+                }
+            });
+
+            return octokitInit;
+        })();
+};
 
 // Initialize the global variables in this module
 // MUST be called before other functions in this module
@@ -20,7 +48,7 @@ exports.setglobals = (api, gmem, gcreds) => {
     gapi = api;
     mem = gmem;
     credentials = gcreds;
-}
+};
 
 // Assorted utility functions
 
@@ -28,7 +56,7 @@ exports.setglobals = (api, gmem, gcreds) => {
 This is used in place of (or in conjunction with) a regex for command matching.
 It combines any passed regular expressions with a capturing group that looks for
 a username (or alias) match and returns a regex match object containing the username
-of the person matched (even if an alias was used – the function handles aliases on its
+of the person matched (even if an alias was used – the function handles aliases on its
 own and converts them back to usernames) in the order described below.
 
 It takes a `command` (a regex object to be matched *before* the username), the `message` to be
@@ -74,7 +102,7 @@ exports.matchesWithUser = (command, message, fromUserId, groupData, optional = f
         match.input = input;
     }
     return match;
-}
+};
 
 /*
 Wrapper function for sending messages easily
@@ -109,12 +137,12 @@ exports.sendMessage = (m, threadId, callback = () => { }, replyId = null, api = 
         console.log(`${threadId}: ${m}`);
         callback();
     }
-}
+};
 
 // Wrapper function for sending error messages to chat (uses sendMessage wrapper)
 exports.sendError = (m, threadId) => {
     this.sendMessage(`Error: ${m}`, threadId);
-}
+};
 
 /*
 Wrapper function for using mentions
@@ -127,7 +155,7 @@ exports.sendMessageWithMentions = (message, mentions, threadId, replyId = null) 
         "body": message,
         "mentions": mentions,
     }, threadId, () => { }, replyId);
-}
+};
 
 // Kick user for an optional length of time in seconds (default indefinitely)
 // Also accepts optional callback parameter if length is specified
@@ -151,10 +179,10 @@ exports.kick = (userId, kickerId, info, time, callback = () => { }, api = gapi) 
             }
         });
     }
-}
+};
 
 // Same as kick, but for a list of users
-exports.kickMultiple = (userIds, kickerId, info, time, callback = () => { }, api = gapi) => {
+exports.kickMultiple = (userIds, kickerId, info, time, callback = () => { }) => {
     // Check if kicking is possible first to avoid duplicate error messages
     if (!info.isGroup) {
         this.sendError("Cannot kick user from private chat.", info.threadId);
@@ -178,7 +206,7 @@ exports.kickMultiple = (userIds, kickerId, info, time, callback = () => { }, api
             }, i * 1000);
         }
     }
-}
+};
 
 /*
 Adds user to group and updates members list
@@ -214,7 +242,7 @@ exports.addUser = (id, info, welcome = true, callback = () => { }, retry = true,
             callback(err);
         }
     });
-}
+};
 
 // Utility func for welcoming users to the chat
 exports.welcomeToChat = (name, groupInfo) => {
@@ -222,12 +250,12 @@ exports.welcomeToChat = (name, groupInfo) => {
     if (groupInfo.pinned) {
         const introPin = groupInfo.pinned[config.introPin];
         if (introPin) {
-            msg += `\n${this.stringifyPin(introPin)}`;
+            msg += `\nHere's some information about this chat:\n\n${this.stringifyPin(introPin)}`;
         }
     }
 
     this.sendMessage(msg, groupInfo.threadId);
-}
+};
 
 /*
 Update stored info about groups after every message in the background
@@ -287,7 +315,10 @@ exports.updateGroupInfo = (threadId, message, callback = () => { }, sendsInit = 
                             info.pinned = {};
                             info.events = {};
                             info.mentionGroups = {};
+                            info.following = {};
+                            info.feeds = {};
                             info.isGroup = data.isGroup;
+                            info.richContent = true;
                         }
                         api.getUserInfo(data.participantIDs, (err, userData) => {
                             if (!err) {
@@ -338,7 +369,7 @@ exports.updateGroupInfo = (threadId, message, callback = () => { }, sendsInit = 
             }
         });
     });
-}
+};
 
 // Gets stored information about a group
 exports.getGroupInfo = (threadId, callback) => {
@@ -357,7 +388,7 @@ exports.getGroupInfo = (threadId, callback) => {
             }
         }
     });
-}
+};
 
 // Wrapper function for retrieving all groups from memory
 exports.getGroupData = callback => {
@@ -371,7 +402,7 @@ exports.getGroupData = callback => {
             callback(null, groupData);
         }
     });
-}
+};
 
 // Updates stored information about a group
 exports.setGroupInfo = (info, callback = () => { }) => {
@@ -383,7 +414,7 @@ exports.setGroupInfo = (info, callback = () => { }) => {
             });
         }
     });
-}
+};
 
 // Wrapper for updating a group property
 exports.setGroupProperty = (key, value, info, callback = () => { }) => {
@@ -399,7 +430,7 @@ exports.setGroupProperty = (key, value, info, callback = () => { }) => {
     }
     // NOTE: temporary arbitrary delay until I can figure out how to prevent
     // the background update calls from overwriting these property changes (async/await?)
-}
+};
 
 // Searches help for a given entry and returns an object containing the entry
 // and its key if found
@@ -418,7 +449,7 @@ exports.getHelpEntry = input => {
             }
         }
     }
-}
+};
 // Searches help for a given category and returns an object containing the
 // entry and its key if found
 exports.getHelpCategory = input => {
@@ -431,12 +462,12 @@ exports.getHelpCategory = input => {
             }
         }
     }
-}
+};
 
 // Wrapper for sending an emoji to the group quickly
 exports.sendGroupEmoji = (groupInfo, size = "medium") => {
     this.sendEmoji(groupInfo.emoji || config.defaultEmoji, groupInfo.threadId, size);
-}
+};
 
 // Specify size as a string: "small", "medium", or "large"
 exports.sendEmoji = (emoji, threadId, size = "small") => {
@@ -444,13 +475,13 @@ exports.sendEmoji = (emoji, threadId, size = "small") => {
         "emoji": emoji,
         "emojiSize": size
     }, threadId);
-}
+};
 
 
 // Sends file(s) where each filename is a relative path to the file from root
 // Accepts a string filename or an array of filename strings, and optional
 // message body parameter, callback, and a message ID (for replying)
-exports.sendFile = (filenames, threadId, message = "", callback = () => { }, replyId = null, api = gapi) => {
+exports.sendFile = (filenames, threadId, message = "", callback = () => { }, replyId = null) => {
     if (typeof (filenames) == "string") { // If only one is passed
         filenames = [filenames];
     }
@@ -460,20 +491,20 @@ exports.sendFile = (filenames, threadId, message = "", callback = () => { }, rep
     const msg = {
         "body": message,
         "attachment": filenames
-    }
+    };
     this.sendMessage(msg, threadId, callback, replyId);
-}
+};
 
 // Returns a string of the current time in EST
 exports.getTimeString = () => {
     const d = new Date();
     return d.toLocaleTimeString('en-US', { 'timeZone': config.timeZone });
-}
+};
 
 // Wrapper for formatted date at current time
 exports.getDateString = () => {
     return (new Date()).toLocaleDateString();
-}
+};
 
 // Given a date, return a nicely-formatted string (with time)
 exports.getPrettyDateString = (date, withTime = true) => {
@@ -491,8 +522,8 @@ exports.getPrettyDateString = (date, withTime = true) => {
         options['hour12'] = true;
     }
 
-    return date.toLocaleString('en-US', options)
-}
+    return date.toLocaleString('en-US', options);
+};
 
 /*
 Creates a description for a user search result given the match's data from the chat API
@@ -500,15 +531,15 @@ Also performs a Graph API search for a high-res version of the user's profile pi
 and uploads it with the description if it finds one
 Optional parameter to specify which level of match it is (1st, 2nd, 3rd, etc.)
 */
-exports.searchForUser = (match, threadId, num = 0, api = gapi) => {
-    const desc = `${(num === 0) ? "Best match" : "Match " + (num + 1)}: ${match.name}\n${match.profileUrl}\nRank: ${match.score}`;
+exports.searchForUser = (match, threadId, num = 0) => {
+    const desc = `${(num === 0) ? "Best match" : "Match " + (num + 1)}: ${match.name}\n${match.profileUrl}\nRank: ${match.score}\nUser ID: ${match.userID}`;
 
     // Try to get large propic URL from Facebook Graph API using user ID
     // If propic exists, combine it with the description
     const userId = match.userID;
     const graphUrl = `https://graph.facebook.com/${userId}/picture?type=large&redirect=false&width=400&height=400`;
     request.get(graphUrl, (err, res, body) => {
-        if (res.statusCode == 200) {
+        if (!err && res.statusCode == 200) {
             const url = JSON.parse(body).data.url; // Photo URL from Graph API
             if (url) {
                 this.sendFilesFromUrl(url, threadId, desc);
@@ -517,7 +548,7 @@ exports.searchForUser = (match, threadId, num = 0, api = gapi) => {
             }
         }
     });
-}
+};
 
 /*
 Sends a file to the group from a URL by temporarily downloading it
@@ -555,22 +586,22 @@ exports.sendFilesFromUrl = (urls, threadId, message = "") => {
         urls.forEach(url => {
             const shortName = encodeURIComponent(url).slice(0, config.MAXPATH);
             const path = `${__dirname}/../media/${shortName}.jpg`;
-            request(url).pipe(fs.createWriteStream(path)).on('close', (err, _) => {
+            request(url).pipe(fs.createWriteStream(path)).on('close', err => {
                 downloaded.push(err ? null : { "url": url, "path": path });
                 cb();
             });
         });
     }
-}
+};
 
 // Gets a random hex color from the list of supported values (now that Facebook has restricted it to
 // a certain subset of them; more specifically, the lowercase hex values of colors in the palette UI)
 exports.getRandomColor = (api = gapi) => {
     const colors = Object.keys(api.threadColors).map(n => api.threadColors[n]);
     return colors[Math.floor(Math.random() * colors.length)];
-}
+};
 
-// Restarts the bot (requires deploying to Heroku – see config)
+// Restarts the bot (requires deploying to Heroku – see config)
 // Includes optional callback
 exports.restart = (callback = () => { }) => {
     request.delete({
@@ -581,12 +612,12 @@ exports.restart = (callback = () => { }) => {
         }
     });
     callback();
-}
+};
 
 // Constructs a string of artists when passed a track object from the Spotify API
 exports.getArtists = track => {
     const artists = track.artists;
-    artistStr = "";
+    let artistStr = "";
     for (let i = 0; i < artists.length; i++) {
         artistStr += artists[i].name;
         if (i != artists.length - 1) {
@@ -594,7 +625,7 @@ exports.getArtists = track => {
         }
     }
     return artistStr;
-}
+};
 
 // Logs into Spotify API & sets the appropriate credentials
 exports.loginSpotify = (spotify, callback = () => { }) => {
@@ -606,7 +637,7 @@ exports.loginSpotify = (spotify, callback = () => { }) => {
             callback(err);
         }
     });
-}
+};
 
 // Sends the contents of a given file (works best with text files)
 exports.sendContentsOfFile = (file, threadId) => {
@@ -617,17 +648,17 @@ exports.sendContentsOfFile = (file, threadId) => {
             console.log(err);
         }
     });
-}
+};
 
 // Functions for getting/setting user scores (doesn't save much in terms of
 // code/DRY, but wraps the functions so that it's easy to change how they're stored)
 exports.setScore = (userId, score, callback) => {
     mem.set(`userscore_${userId}`, score, {}, callback);
-}
+};
 
 exports.getScore = (userId, callback) => {
     mem.get(`userscore_${userId}`, callback);
-}
+};
 
 // Updates the user's score either by (if isAdd) increasing or (otherwise) decreasing
 // the user's score by the default value set in config, or 5 points if not set
@@ -647,12 +678,13 @@ exports.updateScore = (isAdd, userId, callback) => {
             callback(err, success, newScore);
         });
     });
-}
+};
 
 exports.getAllScores = (groupInfo, callback = () => { }) => {
     const members = groupInfo.names;
     let results = [];
-    let now = current = (new Date()).getTime();
+    const now = (new Date()).getTime();
+    let current = now;
 
     function updateResults(value) {
         results.push(value);
@@ -660,7 +692,7 @@ exports.getAllScores = (groupInfo, callback = () => { }) => {
 
         current = (new Date()).getTime();
         if (success || (current - now) >= config.asyncTimeout) {
-            callback(success, results)
+            callback(success, results);
         }
     }
 
@@ -674,7 +706,7 @@ exports.getAllScores = (groupInfo, callback = () => { }) => {
             });
         }
     }
-}
+};
 
 // Sets group image to image found at given URL
 // Accepts url, threadId, and optional error message parameter to be displayed if changing the group image fails
@@ -683,7 +715,7 @@ exports.setGroupImageFromUrl = (url, threadId, errMsg = "Photo couldn't download
     // 10 is length of rest of path string (media/.png)
     const path = `../media/${encodeURIComponent(url.substring(0, config.MAXPATH - 10))}.png`;
     const fullpath = `${__dirname}/${path}`;
-    request(url).pipe(fs.createWriteStream(fullpath)).on('close', (err, data) => {
+    request(url).pipe(fs.createWriteStream(fullpath)).on('close', err => {
         if (!err) {
             api.changeGroupImage(fs.createReadStream(fullpath), threadId, err => {
                 fs.unlink(fullpath);
@@ -695,7 +727,7 @@ exports.setGroupImageFromUrl = (url, threadId, errMsg = "Photo couldn't download
             this.sendError("Image not found at that URL");
         }
     });
-}
+};
 
 // Processes an image or images by sifting between URL input and attachments and downloading
 // Returns a JIMP image object and filename where the image was stored
@@ -750,7 +782,7 @@ exports.measureText = (font, text) => {
         }
     }
     return [x, y];
-}
+};
 
 // Sends a message to all of the chats that the bot is currenty in (use sparingly)
 exports.sendToAll = msg => {
@@ -763,7 +795,7 @@ exports.sendToAll = msg => {
             }
         }
     });
-}
+};
 
 // Sends all files in a directory (relative to root)
 exports.sendFilesFromDir = (dir, threadId) => {
@@ -776,7 +808,7 @@ exports.sendFilesFromDir = (dir, threadId) => {
             console.log(err);
         }
     });
-}
+};
 
 /*
 Retrieve usage stats for a command from memory
@@ -811,21 +843,21 @@ exports.getStats = (command, fullData, callback) => {
             }
         });
     });
-}
+};
 
 // Updates the usage stats for a command in memory
 // Takes a command string and a stats object with `count`, `total`, and
 // `record` fields (i.e. the output from `getStats()` with the `fullData`
 // flag set to true)
 exports.setStats = (command, stats, callback = () => { }) => {
-    mem.set(`usage_total_all`, `${stats.total}`, {}, (t_err, success) => {
-        mem.set(`usage_total_${command}`, `${stats.count}`, {}, (c_err, success) => {
-            mem.set(`usage_record_${command}`, `${JSON.stringify(stats.record)}`, {}, (u_err, success) => {
+    mem.set(`usage_total_all`, `${stats.total}`, {}, t_err => {
+        mem.set(`usage_total_${command}`, `${stats.count}`, {}, c_err => {
+            mem.set(`usage_record_${command}`, `${JSON.stringify(stats.record)}`, {}, u_err => {
                 callback(t_err, c_err, u_err);
             });
         });
     });
-}
+};
 
 exports.getAllStats = callback => {
     const co = commands.commands;
@@ -833,7 +865,8 @@ exports.getAllStats = callback => {
         return (co[c].display_names.length > 0); // Don't show secret commands
     });
     let results = [];
-    let now = current = (new Date()).getTime();
+    const now = (new Date()).getTime();
+    let current = now;
 
     function updateResults(value) {
         results.push(value);
@@ -842,7 +875,7 @@ exports.getAllStats = callback => {
         current = (new Date()).getTime();
 
         if (success || (current - now) >= config.asyncTimeout) {
-            callback(success, results)
+            callback(success, results);
         }
     }
 
@@ -858,7 +891,7 @@ exports.getAllStats = callback => {
             }
         });
     }
-}
+};
 
 // Updates the usage statistics for a particular command (takes command name and
 // sending user's ID)
@@ -875,8 +908,8 @@ exports.updateStats = (command, senderID, callback = () => { }) => {
         } else {
             callback(err);
         }
-    })
-}
+    });
+};
 
 // Clears the stats to start over
 exports.resetStats = () => {
@@ -887,10 +920,10 @@ exports.resetStats = () => {
                 "count": 0,
                 "total": 0,
                 "record": []
-            })
+            });
         }
     }
-}
+};
 
 // Outputs the statistics data for debugging/analysis
 exports.logStats = () => {
@@ -905,7 +938,7 @@ exports.logStats = () => {
             });
         }
     }
-}
+};
 
 // Returns the passed list of record objects narrowed to those within the
 // specified time period
@@ -913,7 +946,7 @@ exports.narrowedWithinTime = (record, marker) => {
     return record.filter(val => {
         return (new Date(val.at) > marker);
     });
-}
+};
 
 // Gets the most active user of a given command using its passed records
 exports.getHighestUser = record => {
@@ -937,7 +970,7 @@ exports.getHighestUser = record => {
         }
     }
     return maxUser;
-}
+};
 /* Given a stats object, it adds a `usage` field containing the following:
   `perc`: Percentage of total usage
   `day`: # of times used in the last day
@@ -953,22 +986,22 @@ exports.getComputedStats = stats => {
     const monthMarker = new Date();
     monthMarker.setMonth(monthMarker.getMonth() - 1); // Last month
 
-    const dateRecords = this.narrowedWithinTime(stats.record, dayMarker) // All command calls within the last day
-    const monthRecords = this.narrowedWithinTime(stats.record, monthMarker) // All command calls within the last month
+    const dateRecords = this.narrowedWithinTime(stats.record, dayMarker); // All command calls within the last day
+    const monthRecords = this.narrowedWithinTime(stats.record, monthMarker); // All command calls within the last month
 
     usage.day = dateRecords ? dateRecords.length : 0;
     usage.month = monthRecords ? monthRecords.length : 0;
 
     stats.usage = usage;
     return stats;
-}
+};
 
 // Allows the bot to react to a message given a message ID (from listen)
 // Possible reactions: 'love', 'funny', 'wow', 'sad', 'angry', 'like', and 'dislike'
 exports.reactToMessage = (messageId, reaction = "like", api = gapi) => {
     const reactions = {
-        "love": "❤️",
-        "funny": "😂",
+        "love": "😍",
+        "funny": "😆",
         "wow": "😮",
         "sad": "😢",
         "angry": "😠",
@@ -976,7 +1009,7 @@ exports.reactToMessage = (messageId, reaction = "like", api = gapi) => {
         "dislike": "👎"
     };
     api.setMessageReaction(reactions[reaction], messageId);
-}
+};
 
 /*
 Parses a given message and makes the necessary shortcut replacements, which currently include
@@ -996,7 +1029,7 @@ exports.parseNameReplacements = (message, fromUserId, groupInfo) => {
         }
     }
     return fixes;
-}
+};
 
 // Deletes a pinned message from the chat
 exports.deletePin = (pin, groupInfo, threadId) => {
@@ -1012,7 +1045,7 @@ exports.deletePin = (pin, groupInfo, threadId) => {
     } else {
         this.sendError("Please specify an existing pin to delete.", threadId);
     }
-}
+};
 
 // Renames a pinned message from the chat
 exports.renamePin = (pinArgs, groupInfo, threadId) => {
@@ -1040,7 +1073,7 @@ exports.renamePin = (pinArgs, groupInfo, threadId) => {
     } else {
         this.sendError("Please specify an existing pin to rename.", threadId);
     }
-}
+};
 
 // Adds a pinned message to the chat
 exports.addPin = (msg, pinName, date, sender, groupInfo) => {
@@ -1048,7 +1081,7 @@ exports.addPin = (msg, pinName, date, sender, groupInfo) => {
         "msg": msg,
         "sender": sender,
         "date": date
-    }
+    };
     const oldPin = groupInfo.pinned[pinName];
 
     // Add pin to db
@@ -1058,15 +1091,15 @@ exports.addPin = (msg, pinName, date, sender, groupInfo) => {
             const pinMsg = `Pinned new message for pin "${pinName}" to the chat.${oldPin ? ` Previous message:\n\n"${oldPin.msg}"` : ""}`;
             this.sendMessage(pinMsg, groupInfo.threadId);
         } else {
-            this.sendError("Unable to pin message to the chat.", threadId);
+            this.sendError("Unable to pin message to the chat.", groupInfo.threadId);
         }
     });
-}
+};
 
 exports.stringifyPin = pin => {
     const dateStr = this.getPrettyDateString(new Date(pin.date), false);
-    return `"${pin.msg}" – ${pin.sender} on ${dateStr}`;
-}
+    return `"${pin.msg}" – ${pin.sender} on ${dateStr}`;
+};
 
 exports.appendPin = (content, existing, date, sender, groupInfo) => {
     const pin = groupInfo.pinned[existing];
@@ -1076,19 +1109,19 @@ exports.appendPin = (content, existing, date, sender, groupInfo) => {
             "msg": `${pin.msg}\n${content}`,
             "sender": sender,
             "date": date
-        }
+        };
         // Commit changes to db
         this.setGroupProperty("pinned", groupInfo.pinned, groupInfo, err => {
             if (!err) {
                 this.sendMessage(`Updated pin "${existing}".`, groupInfo.threadId);
             } else {
-                this.sendError("Unable to append that pin; please try again.", threadId);
+                this.sendError("Unable to append that pin; please try again.", groupInfo.threadId);
             }
         });
     } else {
         this.sendError(`"${existing}" doesn't seem to exist. Please specify a valid existing pin to append to.`, groupInfo.threadId);
     }
-}
+};
 
 // Adds an event to the chat
 exports.addEvent = (title, at, sender, groupInfo, threadId) => {
@@ -1113,7 +1146,7 @@ To delete this event, use "${config.trigger} event delete ${title}" (only the ow
             earlyReminderTime = null;
             msg += ".";
         } else {
-            msg += `, and ${config.reminderTime} minutes early.`
+            msg += `, and ${config.reminderTime} minutes early.`;
         }
 
         this.sendMessage(msg, threadId, (err, mid) => {
@@ -1131,7 +1164,7 @@ To delete this event, use "${config.trigger} event delete ${title}" (only the ow
                     "mid": mid.messageID,
                     "going": [],
                     "not_going": []
-                }
+                };
 
                 groupInfo.events[keyTitle] = event;
                 this.setGroupProperty("events", groupInfo.events, groupInfo);
@@ -1140,7 +1173,7 @@ To delete this event, use "${config.trigger} event delete ${title}" (only the ow
     } else {
         this.sendError("Couldn't understand that event's time.", threadId);
     }
-}
+};
 
 // Delete an event from the chat
 exports.deleteEvent = (rawTitle, sender, groupInfo, threadId, sendConfirmation = true) => {
@@ -1148,7 +1181,7 @@ exports.deleteEvent = (rawTitle, sender, groupInfo, threadId, sendConfirmation =
     if (groupInfo.events[keyTitle]) {
         const event = groupInfo.events[keyTitle];
         if (event.owner == sender) {
-            delete groupInfo.events[keyTitle]
+            delete groupInfo.events[keyTitle];
             this.setGroupProperty("events", groupInfo.events, groupInfo, err => {
                 if (err) {
                     this.sendError("Sorry, couldn't delete the event.", threadId);
@@ -1162,7 +1195,7 @@ exports.deleteEvent = (rawTitle, sender, groupInfo, threadId, sendConfirmation =
     } else {
         this.sendError(`Couldn't find an event called ${rawTitle}.`, threadId);
     }
-}
+};
 
 // List event(s) in the chat
 exports.listEvents = (rawTitle, groupInfo, threadId) => {
@@ -1195,12 +1228,12 @@ exports.listEvents = (rawTitle, groupInfo, threadId) => {
             return evts;
         }, {});
         if (Object.keys(events).length > 0) {
-            let msg = "Events for this group: \n"
+            let msg = "Events for this group: \n";
             for (const e in events) {
                 if (events.hasOwnProperty(e)) {
                     const event = events[e];
 
-                    msg += `\n– ${event.title}`
+                    msg += `\n– ${event.title}`;
                     if (event.going.length > 0) {
                         msg += ` (${event.going.length} going)`;
                     }
@@ -1212,7 +1245,7 @@ exports.listEvents = (rawTitle, groupInfo, threadId) => {
             this.sendMessage("There are no events set in this chat.", threadId);
         }
     }
-}
+};
 
 // Add a reminder to the chat
 exports.addReminder = (userId, reminderStr, timeStr, groupInfo, threadId, messageId) => {
@@ -1234,7 +1267,7 @@ exports.addReminder = (userId, reminderStr, timeStr, groupInfo, threadId, messag
                     "owner_name": userName,
                     "threadId": threadId,
                     "replyId": messageId
-                }
+                };
 
                 groupInfo.events[keyTitle] = reminder;
                 this.setGroupProperty("events", groupInfo.events, groupInfo, err => {
@@ -1251,14 +1284,14 @@ exports.addReminder = (userId, reminderStr, timeStr, groupInfo, threadId, messag
             this.sendError("Couldn't get that user's info.", threadId);
         }
     });
-}
+};
 
 // Get information about current status of COVID-19
 exports.getCovidData = (rawType, rawQuery, threadId) => {
     function buildMessage(data, useDetailedData, historical) {
         let msg = `Active cases: ${data.active.toLocaleString()}\nNew cases today: ${data.todayCases.toLocaleString()}`;
         if (useDetailedData) {
-            const [yesterdayCases, _] = getYesterdayNumbers(historical);
+            const [yesterdayCases] = getYesterdayNumbers(historical);
             msg += `${yesterdayCases}\nCritical cases: ${data.critical.toLocaleString()}\nCurrent cases per million: ${data.casesPerOneMillion.toLocaleString()}`;
         }
 
@@ -1271,19 +1304,19 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
         msg += `\n\nDeaths today: ${data.todayDeaths.toLocaleString()}`;
 
         if (useDetailedData) {
-            const [_, yesterdayDeaths] = getYesterdayNumbers(historical);
+            const [, yesterdayDeaths] = getYesterdayNumbers(historical);
             msg += `${yesterdayDeaths}`;
         }
 
         msg += `\nTotal deaths: ${data.deaths.toLocaleString()}`;
 
         if (useDetailedData) {
-            msg += `\nDeaths per million: ${data.deathsPerOneMillion ? data.deathsPerOneMillion.toLocaleString() : 0}`
+            msg += `\nDeaths per million: ${data.deathsPerOneMillion ? data.deathsPerOneMillion.toLocaleString() : 0}`;
         }
 
         const inferRecov = (data.cases - data.active - data.deaths);
         const recovered = data.recovered ? `Recovered: ${data.recovered.toLocaleString()}` : `${inferRecov > -1 ? `Recovered: ${inferRecov.toLocaleString()} (inferred)` : ""}`;
-        msg += `\n${recovered}`
+        msg += `\n${recovered}`;
 
         if (useDetailedData) {
             const updated = exports.getPrettyDateString(new Date(data.updated));
@@ -1293,14 +1326,18 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
         return msg;
     }
 
+    function getDateKey(date) {
+        return `${date.getMonth() + 1}/${date.getDate()}/${`${date.getFullYear()}`.slice(-2)}`;
+    }
+
     function getYesterdayNumbers(hist) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const twoDaysAgo = new Date();
         twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
-        const yKey = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${`${yesterday.getFullYear()}`.slice(-2)}`;
-        const twoKey = `${twoDaysAgo.getMonth() + 1}/${twoDaysAgo.getDate()}/${`${twoDaysAgo.getFullYear()}`.slice(-2)}`;
+        const yKey = getDateKey(yesterday);
+        const twoKey = getDateKey(twoDaysAgo);
 
         const yCases = hist.cases[yKey] ? hist.cases[yKey] : -1;
         const twoCases = hist.cases[twoKey] ? hist.cases[twoKey] : -1;
@@ -1311,7 +1348,59 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
         const yCasesStr = yCases >= 0 ? `\nNew cases yesterday: ${(yCases - twoCases).toLocaleString()}` : "";
         const yDeathsStr = yDeaths >= 0 ? `\nDeaths yesterday: ${(yDeaths - twoDeaths).toLocaleString()}` : "";
 
-        return [yCasesStr, yDeathsStr]
+        return [yCasesStr, yDeathsStr];
+    }
+
+    function reportData(region, deaths, recovered) {
+        let msg = "";
+        const dates = Object.keys(region).map(key => new Date(key)).filter(date => date != "Invalid Date").sort((a, b) => b - a);
+        if (dates.length > 0) {
+            const recent = dates[0];
+            const recentKey = `${recent.getMonth() + 1}/${recent.getDate()}/${`${recent.getFullYear()}`.slice(-2)}`;
+            const confirmed = region[recentKey];
+            if (confirmed > 0) {
+                const regDeaths = deaths.find(reg => reg.country_Region == region.country_Region
+                    && reg.province_State == region.province_State);
+                const regRec = recovered.find(reg => reg.country_Region == region.country_Region
+                    && reg.province_State == region.province_State);
+                const name = region.province_State || region.country_Region;
+                msg += `\n${name}: ${confirmed} confirmed, ${regDeaths[recentKey]} dead, ${regRec[recentKey]} recovered`;
+            }
+        }
+        return msg;
+    }
+
+    function getVaccString(vhist) {
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+        const tKey = getDateKey(today);
+        const yKey = getDateKey(yesterday);
+        const twoKey = getDateKey(twoDaysAgo);
+
+        const tVacc = vhist[tKey] ? vhist[tKey] : -1;
+        const yVacc = vhist[yKey] ? vhist[yKey] : -1;
+        const twoVacc = vhist[twoKey] ? vhist[twoKey] : -1;
+
+        const tVaccStr = tVacc >= 0 ? `Vaccinations today: ${(tVacc - yVacc).toLocaleString()}` : "";
+        const yVaccStr = yVacc >= 0 ? `\nVaccinations yesterday: ${(yVacc - twoVacc).toLocaleString()}` : "";
+
+        return tVaccStr.length > 0 || yVaccStr > 0 ? `${tVaccStr}${yVaccStr}\n\n` : "";
+    }
+
+    function buildTodayStr(cur, hist, vhist) {
+        const [yCasesStr, yDeathsStr] = getYesterdayNumbers(hist);
+        const vaccString = getVaccString(vhist);
+
+        let msg = `New cases today: ${cur.todayCases.toLocaleString()}${yCasesStr}\nTotal cases: ${cur.cases.toLocaleString()}\n\n`;
+        msg += `Deaths today: ${cur.todayDeaths.toLocaleString()}${yDeathsStr}\nTotal deaths: ${cur.deaths.toLocaleString()}\n\n`;
+        msg += vaccString;
+        msg += `Total recovered: ${cur.recovered.toLocaleString()}`;
+
+        return msg;
     }
 
     if (!rawType) {
@@ -1377,25 +1466,6 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
                 }
             });
         } else if (type == "province") {
-            function reportData(region, deaths, recovered) {
-                let msg = "";
-                const dates = Object.keys(region).map(key => new Date(key)).filter(date => date != "Invalid Date").sort((a, b) => b - a);
-                if (dates.length > 0) {
-                    const recent = dates[0];
-                    const recentKey = `${recent.getMonth() + 1}/${recent.getDate()}/${`${recent.getFullYear()}`.slice(-2)}`;
-                    const confirmed = region[recentKey];
-                    if (confirmed > 0) {
-                        const regDeaths = deaths.find(reg => reg.country_Region == region.country_Region
-                            && reg.province_State == region.province_State);
-                        const regRec = recovered.find(reg => reg.country_Region == region.country_Region
-                            && reg.province_State == region.province_State);
-                        const name = region.province_State || region.country_Region;
-                        msg += `\n${name}: ${confirmed} confirmed, ${regDeaths[recentKey]} dead, ${regRec[recentKey]} recovered`;
-                    }
-                }
-                return msg;
-            }
-
             request.get("https://api.opencovid19.com/v1/confirmed", null, (cerr, cres, casesData) => {
                 request.get("https://api.opencovid19.com/v1/deaths", null, (derr, dres, deathsData) => {
                     request.get("https://api.opencovid19.com/v1/recovered", null, (rerr, rres, recoveredData) => {
@@ -1442,16 +1512,6 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
                 this.sendError(`"${rawQuery}" is not a valid number.`, threadId);
             }
         } else if (type == "today") {
-            function buildTodayStr(cur, hist) {
-                const [yCasesStr, yDeathsStr] = getYesterdayNumbers(hist);
-
-                let msg = `New cases today: ${cur.todayCases.toLocaleString()}${yCasesStr}\nTotal cases: ${cur.cases.toLocaleString()}\n\n`;
-                msg += `Deaths today: ${cur.todayDeaths.toLocaleString()}${yDeathsStr}\nTotal deaths: ${cur.deaths.toLocaleString()}\n\n`;
-                msg += `Total recovered: ${cur.recovered.toLocaleString()}`;
-
-                return msg;
-            }
-
             request.get(`https://corona.lmao.ninja/v2/historical/${query}`, {}, (herr, _, hdata) => {
                 if (herr) {
                     hdata = { "timeline": { "cases": {}, "deaths": {} } };
@@ -1460,21 +1520,27 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
                 }
 
                 if (query == "all") {
-                    request.get("https://corona.lmao.ninja/v2/all", {}, (err, _, all) => {
+                    request.get("https://disease.sh/v3/covid-19/all", {}, (err, _, all) => {
                         if (!err) {
                             const cdata = JSON.parse(all);
-                            const msg = `*Today's worldwide summary*\n\n${buildTodayStr(cdata, hdata)}`;
-                            this.sendMessage(msg, threadId);
+                            request.get("https://disease.sh/v3/covid-19/vaccine/coverage", (err, _, data) => {
+                                const vdata = err ? {} : JSON.parse(data);
+                                const msg = `*Today's worldwide summary*\n\n${buildTodayStr(cdata, hdata, vdata)}`;
+                                this.sendMessage(msg, threadId);
+                            });
                         } else {
                             this.sendError("Couldn't retrieve data.", threadId);
                         }
                     });
                 } else {
-                    request.get(`https://corona.lmao.ninja/v2/countries/${query}`, {}, (err, _, data) => {
+                    request.get(`https://disease.sh/v3/covid-19/countries/${query}`, {}, (err, _, data) => {
                         if (!err) {
                             const cdata = JSON.parse(data);
-                            const msg = `*Today's summary for ${cdata.country}*\n\n${buildTodayStr(cdata, hdata["timeline"])}`;
-                            this.sendMessage(msg, threadId);
+                            request.get(`https://disease.sh/v3/covid-19/vaccine/coverage/countries/${query}`, (err, _, data) => {
+                                const vdata = err ? { "timeline": {} } : JSON.parse(data);
+                                const msg = `*Today's summary for ${cdata.country}*\n\n${buildTodayStr(cdata, hdata["timeline"], vdata["timeline"])}`;
+                                this.sendMessage(msg, threadId);
+                            });
                         } else {
                             this.sendError("Couldn't retrieve data.", threadId);
                         }
@@ -1488,7 +1554,7 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
                     if (query == "all") {
                         let msg = `Total candidates: ${data.totalCandidates}\n\nBy phase:`;
                         data.phases.forEach(phase => {
-                            msg += `\n${phase.phase} —> ${phase.candidates} (${(phase.candidates / data.totalCandidates * 100).toFixed(1)}%)`;
+                            msg += `\n${phase.phase} —> ${phase.candidates} (${(phase.candidates / data.totalCandidates * 100).toFixed(1)}%)`;
                         });
 
                         this.sendMessage(msg, threadId);
@@ -1496,12 +1562,10 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
                         const matches = [];
                         for (let i = 0; i < data.data.length; i++) {
                             const info = data.data[i];
+                            const fields = [info.candidate, info.trialPhase, info.institutions, info.sponsors].flat();
                             // Naive substring search
-                            if (info.candidate.toLowerCase().indexOf(query) > -1
-                                || info.trialPhase.toLowerCase() == query
-                                || info.funding.filter(s => s.toLowerCase().indexOf(query) > -1).length > 0
-                                || info.institutions.filter(s => s.toLowerCase().indexOf(query) > -1).length > 0
-                                || info.sponsors.filter(s => s.toLowerCase().indexOf(query) > -1).length > 0) {
+                            const matchingFields = fields.filter(field => field && field.toLowerCase().indexOf(query) > -1);
+                            if (matchingFields.length > 0) {
                                 matches.push(info);
                             }
                         }
@@ -1511,10 +1575,9 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
                             matches.forEach(match => {
                                 const header = "=".repeat(match.candidate.length);
                                 msg += `\n${header}\n${match.candidate}\n${header}\n`;
-                                msg += `Status: ${match.trialPhase}\n`
+                                msg += `Status: ${match.trialPhase}\n`;
                                 msg += `Sponsor${match.sponsors.length == 1 ? '' : 's'}: ${this.concatNames(match.sponsors)}\n`;
                                 msg += `Institution${match.institutions.length == 1 ? '' : 's'}: ${this.concatNames(match.institutions)}\n`;
-                                msg += `Funding: ${this.concatNames(match.funding)}\n`;
                                 msg += `\n${entities.decode(match.details)}\n`;
                             });
 
@@ -1529,48 +1592,50 @@ exports.getCovidData = (rawType, rawQuery, threadId) => {
             });
         }
     }
-}
+};
 
 exports.getStockData = (symbol, callback) => {
-    const params = new URLSearchParams({
-        "function": "GLOBAL_QUOTE",
+    const params = {
         "symbol": symbol.toUpperCase(),
         "apikey": config.stocksKey
-    });
+    };
 
-    // Yahoo Finance API for company/stock metadata
-    request.get(`http://d.yimg.com/autoc.finance.yahoo.com/autoc?query=${symbol}&region=1&lang=en`, {}, (err, res, body) => {
-        let name, exchange, type;
+    // Alpha Vantage API endpoint for company metadata
+    const metadataParams = new URLSearchParams({ ...params, "function": "OVERVIEW" });
+    request.get(`https://www.alphavantage.co/query?${metadataParams.toString()}`, {}, (err, res, body) => {
+        let name, exchange, type, marketCap;
         if (!err && res.statusCode == 200) {
             const data = JSON.parse(body);
-            const results = data["ResultSet"]["Result"];
-            if (results.length > 0) {
-                const result = results[0];
-                name = result.name;
-                exchange = result.exchDisp;
-                type = result.typeDisp;
-            }
+            name = data["Name"];
+            exchange = data["Exchange"];
+            type = data["AssetType"];
+            marketCap = parseInt(data["MarketCapitalization"]);
         }
 
-        // Alpha Vantage API for stock data
-        request.get(`https://www.alphavantage.co/query?${params.toString()}`, {}, (err, res, body) => {
+        // Alpha Vantage API endpoint for stock quote data
+        const quoteParams = new URLSearchParams({ ...params, "function": "GLOBAL_QUOTE" });
+        request.get(`https://www.alphavantage.co/query?${quoteParams.toString()}`, {}, (err, res, body) => {
             if (!err && res.statusCode == 200) {
                 const data = JSON.parse(body);
                 if (data["Error Message"]) {
                     callback("No stock matching that symbol was found.");
                 } else {
-                    const result = data["Global Quote"];
-                    result["name"] = name;
-                    result["exchange"] = exchange;
-                    result["type"] = type;
+                    // Construct a more detailed results object with company metadata
+                    const result = {
+                        ...data["Global Quote"],
+                        name,
+                        exchange,
+                        type,
+                        marketCap
+                    };
                     callback(null, result);
                 }
             } else {
                 callback(err);
             }
         });
-    })
-}
+    });
+};
 
 // Parses a sent message for pings, removes them from the message,
 // and extracts the intended users from the ping to send the message to them
@@ -1597,7 +1662,7 @@ exports.parsePing = (m, fromUserId, groupInfo) => {
         "users": users, // Return array of names to ping
         "message": m.trim() // Remove leading/trailing whitespace
     };
-}
+};
 
 // Ping individual users or the entire group
 exports.handlePings = (body, senderId, info) => {
@@ -1610,9 +1675,9 @@ exports.handlePings = (body, senderId, info) => {
             const sender = info.nicknames[senderId] || info.names[senderId] || "A user";
             let message = `${sender} summoned you in ${info.name}`;
             if (pingMessage.length > 0) { // Message left after pings removed – pass to receiver
-                message = `"${pingMessage}" – ${sender} in ${info.name}`;
+                message = `"${pingMessage}" – ${sender} in ${info.name}`;
             }
-            message += ` at ${this.getTimeString()}` // Time stamp
+            message += ` at ${this.getTimeString()}`; // Time stamp
             // Send message with links to chat/sender
             this.sendMessageWithMentions(message, [{
                 "tag": sender,
@@ -1625,7 +1690,7 @@ exports.handlePings = (body, senderId, info) => {
         return true;
     }
     return false;
-}
+};
 
 // Wrapper func for common error handling cases with property updates
 exports.setGroupPropertyAndHandleErrors = (property, groupInfo, errMsg, successMsg) => {
@@ -1636,7 +1701,7 @@ exports.setGroupPropertyAndHandleErrors = (property, groupInfo, errMsg, successM
             this.sendMessage(successMsg, groupInfo.threadId);
         }
     });
-}
+};
 
 exports.createMentionGroup = (name, userIds, groupInfo) => {
     groupInfo.mentionGroups[name] = userIds;
@@ -1648,7 +1713,7 @@ exports.createMentionGroup = (name, userIds, groupInfo) => {
         "Unable to create the group.",
         `Successfully created group "${name}"${memberString}.`
     );
-}
+};
 
 exports.deleteMentionGroup = (name, groupInfo) => {
     delete groupInfo.mentionGroups[name];
@@ -1657,7 +1722,7 @@ exports.deleteMentionGroup = (name, groupInfo) => {
         "Unable to delete the group.",
         `Successfully deleted group "${name}".`
     );
-}
+};
 
 exports.subToMentionGroup = (name, userIds, groupInfo) => {
     if (userIds.length < 1) { return; }
@@ -1673,9 +1738,9 @@ exports.subToMentionGroup = (name, userIds, groupInfo) => {
             `${memberNames} successfully subscribed to group "${name}".`
         );
     } else {
-        this.sendError("Please provide a valid group to add members.")
+        this.sendError("Please provide a valid group to add members.");
     }
-}
+};
 
 exports.unsubFromMentionGroup = (name, userIds, groupInfo) => {
     if (userIds.length < 1) { return; }
@@ -1691,13 +1756,13 @@ exports.unsubFromMentionGroup = (name, userIds, groupInfo) => {
             `${memberNames} successfully unsubscribed from group "${name}".`
         );
     } else {
-        this.sendError("Please provide a valid group to remove members.")
+        this.sendError("Please provide a valid group to remove members.");
     }
-}
+};
 
 exports.pruneDuplicates = list => {
     return list.filter((item, ind) => list.indexOf(item) == ind);
-}
+};
 
 exports.listMentionGroups = (name, groupInfo) => {
     const groups = groupInfo.mentionGroups;
@@ -1711,7 +1776,7 @@ exports.listMentionGroups = (name, groupInfo) => {
         } else {
             msg += `No members currently subscribed.`;
         }
-        msg += `\n\nMention this group with @@${name}`
+        msg += `\n\nMention this group with @@${name}`;
     } else { // List all groups
         const names = Object.keys(groups);
         if (names.length > 0) {
@@ -1721,7 +1786,7 @@ exports.listMentionGroups = (name, groupInfo) => {
         }
     }
     this.sendMessage(msg, groupInfo.threadId);
-}
+};
 
 // Nicely formats a list of names
 exports.concatNames = names => {
@@ -1736,7 +1801,7 @@ exports.concatNames = names => {
         }
     }
     return str;
-}
+};
 
 // Gets a contextually-aware string asking to promote the bot based on whether
 // the caller can do so
@@ -1746,9 +1811,117 @@ exports.getPromoteString = (fromUserId, groupInfo) => {
     const admins = groupInfo.admins.filter(id => id != config.bot.id).map(id => groupInfo.names[id]);
     const promoteStr = groupInfo.admins.includes(fromUserId) ? "promoting" : `asking ${admins.join("/")} to promote`;
 
-    return `Try ${promoteStr} the bot!`
-}
+    return `Try ${promoteStr} the bot!`;
+};
 
 exports.fancyDuration = (from, to) => {
     return humanize(to - from);
-}
+};
+
+exports.twitterGET = (path, callback) => {
+    const url = `https://api.twitter.com/2${path}`;
+    request.get(url, { "headers": { "authorization": `Bearer ${credentials.TWITTER_TOKEN}` } }, (err, res, body) => {
+        if (!err && res.statusCode == 200) {
+            const data = JSON.parse(body);
+            callback(null, data);
+        } else {
+            callback(new Error("Couldn't retrieve data from that endpoint"));
+        }
+    });
+};
+
+exports.sendTweetMsg = (id, threadId, includeLink = false) => {
+    const expansions = "?expansions=attachments.media_keys,referenced_tweets.id,author_id&media.fields=url";
+
+    this.twitterGET(`/tweets/${id}${expansions}`, (err, tweetData) => {
+        if (err) return;
+
+        const { data, includes } = tweetData;
+
+        const authorId = data.author_id;
+        const author = includes.users.find(user => user.id === authorId);
+        const { name, username } = author;
+
+        // If there are newlines, put a new quote marker at the beginning
+        const text = entities.decode(data.text.split("\n").join("\n> "));
+        let msg = `${name} (@${username}) tweeted: \n> ${text}`;
+
+        if (includeLink) {
+            msg += `\n\nhttps://twitter.com/${username}/status/${id}`;
+        }
+
+        // See if any media can be found
+        if (includes.media) {
+            const imgs = includes.media
+                .filter(media => media.type === "photo")
+                .map(img => img.url);
+            if (imgs.length > 0) {
+                return this.sendFilesFromUrl(imgs, threadId, msg);
+            }
+        }
+
+        this.sendMessage(msg, threadId);
+    });
+};
+
+exports.getLatestTweetID = (handle, callback) => {
+    const expansions = "?user.fields=protected";
+    this.twitterGET(`/users/by/username/${handle}${expansions}`, (err, userData) => {
+        if (err) return callback(new Error("Can't find this user."));
+
+        const { data: userInfo } = userData;
+        if (userInfo.protected) {
+            callback(new Error("Can't fetch this user's tweets because their account is protected."));
+        } else {
+            this.twitterGET(`/tweets/search/recent?query=from:${handle}`, (err, tweetData) => {
+                if (err) return callback(new Error("Encountered an error fetching this user's tweets."));
+
+                const { meta, data: tweets } = tweetData;
+                // If the user doesn't have any recent tweets, just return empty strings since we only
+                // care about being able to detect when they post new ones by diffing the IDs
+                const id = meta.result_count > 0 ? tweets[0].id : "";
+                callback(null, id, userInfo);
+            });
+        }
+    });
+};
+
+exports.getLatestFeedItems = (feedURL, groupInfo, callback) => {
+    const lastCheck = groupInfo.feeds[feedURL] ? new Date(groupInfo.feeds[feedURL]) : new Date();
+
+    rss.parseURL(feedURL, (err, feed) => {
+        if (err) return callback(err);
+
+        const newItems = feed.items ? feed.items.filter(item => new Date(item.pubDate) > lastCheck) : [];
+        callback(null, newItems, feed);
+    });
+};
+
+// Creates a new GitHub issue in the configured repo
+// Takes a reporter (name of person filing the report),
+// creator (name of person creating the ticket), and a text body describing the issue
+// Lastly, takes a callback with parameters for 1) an error (if fails) and
+// (if successful) 2) the created issue's URL and 3) number
+exports.createGitHubIssue = async (sender, reporter, text, type, groupInfo, callback) => {
+    const isBug = type === 'bug';
+    const createdAt = this.getPrettyDateString(new Date());
+    const issueType = isBug ? "Report" : "Request";
+    const title = `[@${reporter} please change the title] ${issueType} in ${groupInfo.name} at ${createdAt}`;
+    const body = `${sender} at ${createdAt}:\n> ${text.replace(/\n/g, "\n> ")}`;
+    const labels = isBug ? ['bug'] : ['new-feature'];
+
+    try {
+        const octokit = getOctokit();
+        const response = await octokit.issues.create({
+            ...config.ghRepo,
+            title,
+            body,
+            labels
+        });
+        const num = response.data.number;
+        const url = `https://github.com/${config.ghRepo.owner}/${config.ghRepo.repo}/issues/${num}`;
+        callback(null, url, num);
+    } catch (err) {
+        callback(err);
+    }
+};

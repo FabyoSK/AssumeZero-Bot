@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 // Stores user commands (accessible via trigger word set in config.js)
 const config = require("./config");
 exports.categories = {
@@ -105,7 +106,7 @@ exports.categories = {
                 "display_names": ["mute", "unmute"],
                 "pretty_name": "Mute/unmute",
                 "short_description": "Turns on/off easter eggs",
-                "description": "Turns on/off easter eggs until they are turned back on",
+                "description": "Turns on/off easter eggs until they are toggled again",
                 "syntax": "(un)mute",
                 "example": ["mute", "unmute"],
                 "sudo": false,
@@ -196,7 +197,23 @@ exports.categories = {
                 },
                 "regex": /undo/i,
                 "experimental": false
-            }
+            },
+            "richcontent": {
+                "display_names": ["rich content"],
+                "pretty_name": "Rich content",
+                "short_description": "Turns on/off rich content (expanded tweets, wiki articles, etc.)",
+                "description": "Turns on/off rich content ",
+                "syntax": "rich content (on|off)",
+                "example": ["rich content on", "rich content off"],
+                "sudo": false,
+                "attachments": false,
+                "user_input": {
+                    "accepts": false,
+                    "optional": false
+                },
+                "regex": /rich content (on|off)/i,
+                "experimental": false
+            },
         }
     },
     "messenger": {
@@ -1108,7 +1125,39 @@ exports.categories = {
                 },
                 "regex": /timer (start|stop)/i,
                 "experimental": false
-            }
+            },
+            "follow": {
+                "display_names": ["follow", "unfollow"],
+                "pretty_name": "Follow",
+                "short_description": "Follow a Twitter account",
+                "description": "Follows a Twitter account, sending new tweets to the chat as they're posted",
+                "syntax": "(un)follow {twitter_handle}|list",
+                "example": ["follow @AstroCB", "unfollow @AstroCB", "follow list"],
+                "sudo": false,
+                "attachments": false,
+                "user_input": {
+                    "accepts": false,
+                    "optional": false
+                },
+                "regex": /(un)?follow @?(\w+)/i,
+                "experimental": false
+            },
+            "subscribe": {
+                "display_names": ["subscribe", "unsubscribe"],
+                "pretty_name": "Subscribe",
+                "short_description": "Subscribe to an RSS feed",
+                "description": "Subscribes to an RSS feed, sending new items to the chat as they're added",
+                "syntax": "(un)subscribe {feed URL}|list",
+                "example": ["subscribe https://github.com/AstroCB/AssumeZero-Bot/commits/master.atom", "unsubscribe https://github.com/AstroCB/AssumeZero-Bot/commits/master.atom", "subscribe list"],
+                "sudo": false,
+                "attachments": false,
+                "user_input": {
+                    "accepts": false,
+                    "optional": false
+                },
+                "regex": /(un)?subscribe (\S+)/i,
+                "experimental": false
+            },
         }
     }
 };
@@ -1116,7 +1165,7 @@ exports.categories = {
 // Splice all of the categories' commands together into one map
 const commGroups = Object.keys(exports.categories).map(cat => exports.categories[cat].commands);
 exports.commands = commGroups.reduce((acc, group) => {
-    for (co in group) {
+    for (let co in group) {
         if (group.hasOwnProperty(co)) {
             acc[co] = group[co];
         }

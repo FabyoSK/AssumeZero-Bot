@@ -6,11 +6,14 @@
 const botcore = require("messenger-botcore"); // Common bot code
 const config = require("./config"); // Config file
 const utils = require("./utils"); // Utility functions
+exports.utils = utils; // Export utils so we can hook into it from other modules
 const commands = require("./commands"); // Command documentation/configuration
 const runner = require("./runcommand"); // For command handling code
-const _ = require("./server"); // Server configuration (just needs to be loaded)
+require("./server"); // Server configuration (just needs to be loaded)
 const easter = require("./easter"); // Easter eggs
 const passive = require("./passive"); // Passive messages
+const reacts = require("./reacts"); // Message reactions
+const ticker = require("./ticker"); // Recurring ticker process
 let credentials;
 try {
     // Login creds from local dir
@@ -38,22 +41,22 @@ function main(err, api) {
     if (err) return console.error(err);
     console.info(`Successfully logged in to user account ${api.getCurrentUserID()}.`);
     gapi = api; // Initialize global API variable
-    utils.setglobals(api, mem); // Initialize in utils module as well
+    utils.setglobals(api, mem, credentials); // Initialize in utils module as well
 
     // Configure the instance
-    botcore.monitoring.monitor(api, config.owner.id ,config.bot.names.short, credentials, process, newApi => {
+    botcore.monitoring.monitor(api, config.owner.id, config.bot.names.short, credentials, process, newApi => {
         // Called when login failed and a new retried login was successful
         stopListening();
         gapi = newApi;
-        utils.setglobals(gapi, mem);
+        utils.setglobals(gapi, mem, credentials);
         stopListening = newApi.listenMqtt(handleMessage);
     });
     api.setOptions({ listenEvents: true });
 
     // Kick off the message handler
     stopListening = api.listenMqtt(handleMessage);
-    // Kick off the event handler
-    setInterval(eventLoop, config.eventCheckInterval * 60000);
+    // Kick off the recurring ticker
+    setInterval(ticker.ticker, config.tickerInterval * 60000);
 
     // Tell process manager that this process is ready
     process.send ? process.send("ready") : null;
@@ -78,7 +81,7 @@ function handleMessage(err, message, external = false, api = gapi) { // New mess
                     const newMembers = message.logMessageData.addedParticipants.filter(m => m.userFbId != config.bot.id);
                     if (newMembers.length > 0) {
                         const names = newMembers.map(mem => mem.firstName).join("/");
-                        utils.welcomeToChat(names, info)
+                        utils.welcomeToChat(names, info);
                     }
                 }
 
@@ -89,7 +92,7 @@ function handleMessage(err, message, external = false, api = gapi) { // New mess
                         const m = message.body;
                         const attachments = message.attachments;
                         // Handle message body
-                        if (m) {
+                        if (m || attachments) {
                             // Pass to commands testing for trigger word
                             const cindex = m.toLowerCase().indexOf(config.trigger);
                             if (cindex > -1) { // Trigger command mode
@@ -103,43 +106,8 @@ function handleMessage(err, message, external = false, api = gapi) { // New mess
                             // Check for passive messages to expand rich content
                             passive.handlePassive(message, info, api);
                         }
-                    } else if (message.type == "message_reaction") { // Potential event response
-                        const eventMidMap = Object.keys(info.events).reduce((events, e) => {
-                            const event = info.events[e];
-                            events[event.mid] = event;
-                            return events;
-                        }, {});
-
-                        const event = eventMidMap[message.messageID];
-                        const rsvpr = message.userID;
-                        const resp = message.reaction;
-                        if (event && (resp == "👍" || resp == "👎")) {
-                            api.getUserInfo(rsvpr, (err, uinfo) => {
-                                if (!err) {
-                                    const data = uinfo[rsvpr];
-                                    let resp_list;
-
-                                    // Remove any pre-existing responses from that user
-                                    event.going = event.going.filter(user => user.id != rsvpr);
-                                    event.not_going = event.not_going.filter(user => user.id != rsvpr);
-
-                                    if (resp == "👍") {
-                                        resp_list = event.going;
-                                    } else if (resp == "👎") {
-                                        resp_list = event.not_going;
-                                    } else {
-                                        // Not a valid RSVP react
-                                        return;
-                                    }
-
-                                    resp_list.push({
-                                        "id": rsvpr,
-                                        "name": data.firstName
-                                    });
-                                    utils.setGroupProperty("events", info.events, info);
-                                }
-                            });
-                        }
+                    } else if (message.type == "message_reaction") {
+                        reacts.handleReacts(message, info, api);
                     }
                 });
             }
@@ -197,77 +165,7 @@ function debugCommandOutput(flag) {
     if (flag) {
         const co = commands.commands;
         console.log(Object.keys(co).map(c => {
-            return `${c}: ${co[c].m}`
+            return `${c}: ${co[c].m}`;
         }));
     }
-}
-
-function eventLoop() {
-    utils.getGroupData((err, data) => {
-        if (!err) {
-            // Collect events from all of the groups
-            let events = Object.keys(data).reduce((events, group) => {
-                const gEvents = data[group].events;
-                Object.keys(gEvents).forEach(event => {
-                    events.push(gEvents[event]);
-                });
-
-                return events;
-            }, []);
-
-            const curTime = new Date();
-            events.forEach(event => {
-                if (new Date(event.timestamp) <= curTime
-                    || (event.remind_time && new Date(event.remind_time) <= curTime)) {
-                    // Event is occurring! (or occurred since last check)
-                    let msg, mentions, replyId;
-                    if (event.type == "event") {
-                        // Event
-                        msg = `Happening ${event.remind_time ? `in ${config.reminderTime} minutes` : "now"}: ${event.title}${event.going.length > 0 ? "\n\nReminder for " : ""}`;
-
-                        // Build up mentions string (with Oxford comma 🤘)
-                        let numGoing = event.going.length;
-                        event.going.forEach((user, i) => {
-                            if (i < numGoing - 1 || numGoing == 1) {
-                                msg += `@${user.name}`;
-                                if (numGoing > 2) {
-                                    msg += ", ";
-                                } else {
-                                    msg += " ";
-                                }
-                            } else {
-                                msg += `and @${user.name}`;
-                            }
-                        });
-                        mentions = event.going.map(user => {
-                            return {
-                                "tag": `@${user.name}`,
-                                "id": user.id
-                            }
-                        });
-                    } else {
-                        // Reminder
-                        msg = `Reminder for @${event.owner_name}: ${event.reminder}`;
-                        mentions = [{
-                            "tag": `@${event.owner_name}`,
-                            "id": event.owner
-                        }];
-                        replyId = event.replyId
-                    }
-
-                    // Send off the reminder message and delete the event
-                    const groupInfo = data[event.threadId];
-                    utils.sendMessageWithMentions(msg, mentions, groupInfo.threadId, replyId);
-
-                    if (event.remind_time) {
-                        // Don't delete, but don't remind again
-                        groupInfo.events[event.key_title].remind_time = null;
-                        utils.setGroupProperty("events", groupInfo.events, groupInfo);
-                    } else {
-                        utils.deleteEvent(event.key_title, event.owner, groupInfo, groupInfo.threadId, sendConfirmation = false);
-                    }
-                }
-            });
-        }
-    });
 }

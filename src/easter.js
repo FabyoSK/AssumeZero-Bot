@@ -1,3 +1,5 @@
+/* eslint-disable no-useless-escape */
+
 /*
     Check for commands that don't require a trigger (Easter eggs).
     
@@ -307,7 +309,7 @@ const eggs = [
 
     {
         "regex": /the flash/i,
-        "func": threadId => { utils.sendFile("../media/flash.mp3", threadId) }
+        "func": threadId => { utils.sendFile("../media/flash.mp3", threadId); }
     },
     {
         "regex": /institutional racism/i,
@@ -383,7 +385,7 @@ const eggs = [
     },
     {
         "regex": /assume zero brain power/i,
-        "func": threadId => { utils.sendFile("../media/aøbp.png", threadId) }
+        "func": threadId => { utils.sendFile("../media/aøbp.png", threadId); }
     },
     {
         "regex": /capital(\s)?one/i,
@@ -492,7 +494,7 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/jazzgrass.png", threadId); }
     },
     {
-        "alt": (message, _, __) => { // Check whether the bot was mentioned
+        "alt": message => { // Check whether the bot was mentioned
             const mentions = Object.keys(message.mentions || {});
             return (mentions && mentions.length && mentions.includes(config.bot.id));
         },
@@ -575,10 +577,6 @@ const eggs = [
         "func": threadId => { utils.sendFile("../media/fire.mov", threadId); }
     },
     {
-        "regex": /^jesus$/i,
-        "func": threadId => { utils.sendFile("../media/jess.png", threadId); }
-    },
-    {
         "regex": /(^|\s)1\%/i,
         "func": threadId => { utils.sendFile("../media/onepercent.png", threadId); }
     },
@@ -588,7 +586,7 @@ const eggs = [
     }
 ];
 
-exports.handleEasterEggs = (messageObj, fromUserId, attachments, groupInfo, api) => {
+exports.handleEasterEggs = (messageObj, fromUserId, attachments, groupInfo) => {
     const message = messageObj.body;
     const messageId = messageObj.messageID;
     if (!groupInfo.muted) { // Don't check for Easter eggs if muted
@@ -606,4 +604,4 @@ exports.handleEasterEggs = (messageObj, fromUserId, attachments, groupInfo, api)
             }
         }
     }
-}
+};
