@@ -109,7 +109,7 @@ exports.categories = {
                 "description": "Turns on/off easter eggs until they are toggled again",
                 "syntax": "(un)mute",
                 "example": ["mute", "unmute"],
-                "sudo": false,
+                "sudo": true,
                 "attachments": false,
                 "user_input": {
                     "accepts": false,
