@@ -1037,7 +1037,7 @@ exports.categories = {
                 "description": `Pins a message to the chat to be accessed later, using a unique name (case-sensitive)${config.introPin ? `; special pins named "${config.introPin}" will be displayed when a new member joins the chat` : ""}`,
                 "syntax": "pin (delete|rename|append) {pin name} ({new message})",
                 "example": ["pin test Test message", "pin", "pin rename test other", "pin append other New stuff", "pin delete other"],
-                "sudo": false,
+                "sudo": true,
                 "attachments": false,
                 "user_input": {
                     "accepts": false,

@@ -18,7 +18,7 @@ exports.bot = {
         "short": "FSK", // Will be used as 'nickname' in chat (remove if same as account name)
         "long": "Fsk Bot" // Name displayed in profile on bot's Facebook account
     },
-    "id": "100057858631932" // Bot's ID (for security purposes in commands)
+    "id": "100027756386096" // Bot's ID (for security purposes in commands)
 }
 
 // Location of the bot repo if automatic GitHub webhook deploys are used
