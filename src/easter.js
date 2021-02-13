@@ -97,7 +97,7 @@ const eggs = [
   {
     regex: /treta|testy/i,
     func: (threadId, messageId) => {
-      utils.sendFile("../media/vacuo.jpeg", threadId, "", () => {}, messageId);
+      utils.sendFile("../media/treta.jpeg", threadId, "", () => {}, messageId);
     },
   },
   {
