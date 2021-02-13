@@ -2,7 +2,7 @@
 exports.FACEBOOK_EMAIL = "fskbot2@gmail.com";
 exports.FACEBOOK_PASSWORD = "Lenovo.10";
 
-exports.TWITTER_TOKEN = "";
+exports.TWITTER_TOKEN = "dh714cXDmSurhMhPBXuFMUjaL";
 // Heroku application token
 exports.TOKEN = "ff28e200-a223-4976-8766-63e18e424fdb";
 // MemCachier credentials (from MemCachier dashboard)

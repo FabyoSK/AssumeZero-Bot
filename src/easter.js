@@ -66,7 +66,7 @@ const eggs = [
     },
   },
   {
-    regex: /(?:\s|^)afábio|nya|fabio|fabyosk|alves|code|coffee|one piece|op/i,
+    regex: /fábio|nya|fabio|fabyosk|alves|code|coffee|oppai|loli/i,
     func: (_, messageId) => {
       utils.reactToMessage(messageId, "love");
     },
@@ -92,6 +92,12 @@ const eggs = [
     regex: /vácuo|vacuo/i,
     func: (threadId, messageId) => {
       utils.sendFile("../media/vacuo.jpeg", threadId, "", () => {}, messageId);
+    },
+  },
+  {
+    regex: /treta/i,
+    func: (threadId, messageId) => {
+      utils.sendFile("../media/treta.jpg", threadId, "", () => {}, messageId);
     },
   },
   {
