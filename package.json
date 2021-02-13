@@ -18,7 +18,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AstroCB/AssumeZero-Bot"
+    "url": "https://github.com/FabyoSK/AssumeZero-Bot"
   },
   "dependencies": {
     "@octokit/auth-app": "^2.11.0",
